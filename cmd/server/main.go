@@ -17,6 +17,7 @@ import (
 	"github.com/woragis/streamer-backend/internal/handlers"
 	appmw "github.com/woragis/streamer-backend/internal/middleware"
 	"github.com/woragis/streamer-backend/internal/store"
+	"github.com/woragis/streamer-backend/internal/ws"
 )
 
 func main() {
@@ -33,9 +34,14 @@ func main() {
 		log.Fatalf("seed: %v", err)
 	}
 
+	hub := ws.NewHub(cfg.CORSOrigins)
+	st.SetHub(hub)
+
 	roomHandler := &handlers.RoomHandler{Store: st}
 	calHandler := &handlers.CalisthenicsHandler{Store: st}
 	lcHandler := &handlers.LeetCodeHandler{Store: st}
+	platformHandler := &handlers.PlatformHandler{Store: st}
+	wsHandler := &handlers.WSHandler{Hub: hub, Token: cfg.StateAPIToken}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -50,6 +56,8 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
+
+	r.Get("/api/v1/rooms/{roomId}/subscribe", wsHandler.Subscribe)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/rooms/{roomId}", func(r chi.Router) {
@@ -135,6 +143,20 @@ func main() {
 
 			r.Get("/calisthenics/stats", calHandler.GetSkillStats)
 			r.Post("/calisthenics/practice-logs", calHandler.CreatePracticeLog)
+
+			r.Post("/chat/ingest", platformHandler.IngestMessage)
+			r.Get("/chat/messages", platformHandler.ListMessages)
+			r.Delete("/chat/messages/{messageId}", platformHandler.DeleteMessage)
+
+			r.Post("/events/ingest", platformHandler.IngestEvent)
+			r.Get("/events", platformHandler.ListEvents)
+
+			r.Get("/rules", platformHandler.ListRules)
+			r.Post("/rules", platformHandler.CreateRule)
+			r.Patch("/rules/{ruleId}", platformHandler.UpdateRule)
+			r.Delete("/rules/{ruleId}", platformHandler.DeleteRule)
+
+			r.Get("/dashboard", platformHandler.GetDashboard)
 		})
 	})
 

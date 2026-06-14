@@ -55,6 +55,15 @@ Servidor em `http://localhost:8080`.
 | GET/POST | `/api/v1/rooms/{roomId}/calisthenics/acquisitions` | POST: Bearer |
 | POST | `/api/v1/rooms/{roomId}/calisthenics/acquisitions/{id}/ack` | Bearer |
 | GET | `/api/v1/rooms/{roomId}/calisthenics/stats?month=2026-06` | — |
+| WS | `/api/v1/rooms/{roomId}/subscribe?domain=all&token=` | token opcional se `STATE_API_TOKEN` set |
+| POST | `/api/v1/rooms/{roomId}/chat/ingest` | Bearer |
+| GET | `/api/v1/rooms/{roomId}/chat/messages?limit=50` | — |
+| DELETE | `/api/v1/rooms/{roomId}/chat/messages/{messageId}` | Bearer |
+| POST | `/api/v1/rooms/{roomId}/events/ingest` | Bearer |
+| GET | `/api/v1/rooms/{roomId}/events?limit=50` | — |
+| GET/POST | `/api/v1/rooms/{roomId}/rules` | POST: Bearer |
+| PATCH/DELETE | `/api/v1/rooms/{roomId}/rules/{ruleId}` | Bearer |
+| GET | `/api/v1/rooms/{roomId}/dashboard?month=2026-06` | — |
 
 Room padrão: `default` (seed automático na primeira execução).
 
@@ -104,6 +113,24 @@ curl -X POST http://localhost:8080/api/v1/rooms/default/calisthenics/acquisition
 
 curl http://localhost:8080/api/v1/rooms/default/calisthenics/state
 # skillAlert aparece no state até POST .../acquisitions/{id}/ack
+
+# Chat ingest (webhook-style) — !brb troca scene se regra ativa
+curl -X POST http://localhost:8080/api/v1/rooms/default/chat/ingest \
+  -H "Authorization: Bearer dev-token" \
+  -H "Content-Type: application/json" \
+  -d '{"platform":"youtube","username":"viewer1","content":"!brb"}'
+
+# Stream event (follower/sub/donation)
+curl -X POST http://localhost:8080/api/v1/rooms/default/events/ingest \
+  -H "Authorization: Bearer dev-token" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"follower","platform":"kick","username":"newfan"}'
+
+# Dashboard agregado
+curl "http://localhost:8080/api/v1/rooms/default/dashboard?month=2026-06"
+
+# WebSocket (OBS/control) — eventos: state.updated, message.created, session.updated
+# wscat -c "ws://localhost:8080/api/v1/rooms/default/subscribe?domain=all&token=dev-token"
 ```
 
 ### Optimistic locking
@@ -122,12 +149,13 @@ curl http://localhost:8080/api/v1/rooms/default/calisthenics/state
 - [x] Fase B — Calisthenics model (workout → exercise → set)
 - [x] Fase C — LeetCode model (problems, attempts, stats, live sessions)
 - [x] Fase D — Skill tracking (movements, proficiency, acquisitions)
-- [ ] Fase E — Chat & analytics
+- [x] Fase E — Chat, WebSocket & dashboard
 
 ## Stack
 
 - Go 1.22+
 - chi router
+- gorilla/websocket
 - modernc.org/sqlite (pure Go)
 
 ## Env
