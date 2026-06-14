@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/woragis/streamer-backend/internal/defaults"
+	"github.com/woragis/streamer-backend/internal/ws"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -29,7 +30,8 @@ type Document struct {
 }
 
 type Store struct {
-	db *sql.DB
+	db  *sql.DB
+	hub *ws.Hub
 }
 
 func New(db *sql.DB) *Store {
@@ -78,7 +80,10 @@ func (s *Store) Seed(ctx context.Context) error {
 	if err := s.EnsureCalisthenics(ctx, defaults.DefaultRoomID); err != nil {
 		return err
 	}
-	return s.EnsureSkillCatalog(ctx, defaults.DefaultRoomID)
+	if err := s.EnsureSkillCatalog(ctx, defaults.DefaultRoomID); err != nil {
+		return err
+	}
+	return s.EnsurePlatform(ctx, defaults.DefaultRoomID)
 }
 
 func insertDocIfMissing(ctx context.Context, tx *sql.Tx, roomID, key string, data json.RawMessage, now string) error {

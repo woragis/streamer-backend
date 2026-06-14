@@ -242,7 +242,12 @@ func (s *Store) PutLeetCodeState(ctx context.Context, roomID string, body json.R
 	if err := tx.Commit(); err != nil {
 		return leetcode.State{}, err
 	}
-	return s.GetLeetCodeState(ctx, roomID)
+	state, err := s.GetLeetCodeState(ctx, roomID)
+	if err != nil {
+		return leetcode.State{}, err
+	}
+	s.publishState(roomID, "leetcode", state.Revision)
+	return state, nil
 }
 
 func (s *Store) getLCRuntime(ctx context.Context, roomID string) (lcRuntime, error) {

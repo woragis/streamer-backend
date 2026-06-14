@@ -314,7 +314,12 @@ func (s *Store) PutCalisthenicsState(ctx context.Context, roomID string, body js
 	if err := tx.Commit(); err != nil {
 		return calisthenics.State{}, err
 	}
-	return s.GetCalisthenicsState(ctx, roomID)
+	state, err := s.GetCalisthenicsState(ctx, roomID)
+	if err != nil {
+		return calisthenics.State{}, err
+	}
+	s.publishState(roomID, "calisthenics", state.Revision)
+	return state, nil
 }
 
 func (s *Store) getCalRuntime(ctx context.Context, roomID string) (calRuntime, error) {
