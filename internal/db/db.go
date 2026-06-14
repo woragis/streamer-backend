@@ -204,6 +204,52 @@ CREATE TABLE IF NOT EXISTS cal_skill_practice_logs (
 	notes TEXT NOT NULL DEFAULT '',
 	FOREIGN KEY (room_id) REFERENCES rooms(id)
 );
+
+CREATE TABLE IF NOT EXISTS core_users (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	platform TEXT NOT NULL,
+	username TEXT NOT NULL,
+	display_name TEXT NOT NULL DEFAULT '',
+	first_seen_at TEXT NOT NULL,
+	last_seen_at TEXT NOT NULL,
+	UNIQUE(room_id, platform, username)
+);
+
+CREATE TABLE IF NOT EXISTS core_messages (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	user_id TEXT NOT NULL,
+	live_session_id TEXT,
+	platform TEXT NOT NULL,
+	content TEXT NOT NULL,
+	created_at TEXT NOT NULL,
+	deleted_at TEXT,
+	FOREIGN KEY (user_id) REFERENCES core_users(id)
+);
+
+CREATE TABLE IF NOT EXISTS core_stream_events (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	live_session_id TEXT,
+	event_type TEXT NOT NULL,
+	platform TEXT NOT NULL DEFAULT '',
+	username TEXT NOT NULL DEFAULT '',
+	payload JSON NOT NULL DEFAULT '{}',
+	created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS core_bot_rules (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	name TEXT NOT NULL,
+	enabled INTEGER NOT NULL DEFAULT 1,
+	trigger_type TEXT NOT NULL DEFAULT 'keyword',
+	trigger_value TEXT NOT NULL,
+	action_type TEXT NOT NULL,
+	action_payload JSON NOT NULL DEFAULT '{}',
+	created_at TEXT NOT NULL
+);
 `
 
 func Open(databaseURL string) (*sql.DB, error) {
