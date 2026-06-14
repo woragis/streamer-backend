@@ -152,21 +152,23 @@ curl "http://localhost:8080/api/v1/rooms/default/dashboard?month=2026-06"
 - [x] Fase E — Chat, WebSocket & dashboard
 - [x] Fase F — Redis pub/sub (multi-instance WebSocket)
 - [x] Fase F3 — Redis Streams ingest queue + dedup
+- [x] Fase G — Postgres (goose migrations, JSONB)
 
 ## Stack
 
-- Go 1.22+
+- Go 1.25+
+- PostgreSQL 16 + pgx
+- goose (migrations)
 - chi router
 - gorilla/websocket
-- redis/go-redis (pub/sub)
-- modernc.org/sqlite (pure Go)
+- redis/go-redis (pub/sub + streams)
 
 ## Env
 
 | Variável | Default |
 |----------|---------|
 | `PORT` | `8080` |
-| `DATABASE_URL` | `./data/state.db` |
+| `DATABASE_URL` | `postgres://streamer:streamer@localhost:5432/streamer?sslmode=disable` |
 | `STATE_API_TOKEN` | `dev-token` |
 | `CORS_ORIGINS` | `http://localhost:5173,...` |
 | `REDIS_URL` | _(vazio = desligado)_ |
@@ -174,13 +176,36 @@ curl "http://localhost:8080/api/v1/rooms/default/dashboard?month=2026-06"
 | `INGEST_MODE` | `sync` (default) ou `queue` |
 | `CONSUMER_ENABLED` | `true` — processa fila ingest no mesmo processo |
 
+## Quick start
+
+Infra (Postgres + Redis) na **raiz do monorepo** `streamer/`:
+
+```bash
+# de streamer/
+make up
+cp .env.example backend/.env
+cd backend && make run
+curl http://localhost:8080/health
+# {"status":"ok","database":"ok","driver":"postgres","redis":"ok",...}
+```
+
+Migrations rodam automaticamente no startup (`goose` embedded).
+
+Testes de integração precisam do Postgres:
+
+```bash
+# streamer/
+make up
+cd backend && go test ./...
+```
+
 ## Redis (Fase F)
 
 Pub/Sub distribui eventos WebSocket entre múltiplas instâncias da API.
 
 ```bash
-make docker-up          # Redis 7 em localhost:6379
-cp .env.example .env    # REDIS_URL=redis://localhost:6379/0
+make up                 # na raiz streamer/ — sobe Postgres + Redis
+cp .env.example .env    # backend/.env
 make run
 curl http://localhost:8080/health
 # {"status":"ok","redis":"ok","instanceId":"...","ingestMode":"sync","ingestQueuePending":0}
