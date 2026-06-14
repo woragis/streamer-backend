@@ -12,7 +12,7 @@ func TestMapWebhookChatMessage(t *testing.T) {
 		"broadcaster": {"username": "streamer", "channel_slug": "mystream"}
 	}`)
 
-	mapped, ok, err := MapWebhook(EventChatMessage, body, "mystream")
+	mapped, ok, err := MapWebhook(EventChatMessage, body, "mystream", "")
 	if err != nil || !ok || mapped.Message == nil {
 		t.Fatalf("expected chat mapping, ok=%v err=%v mapped=%+v", ok, err, mapped)
 	}
@@ -32,7 +32,7 @@ func TestMapWebhookChatMessageWrongChannel(t *testing.T) {
 		"broadcaster": {"channel_slug": "other"}
 	}`)
 
-	_, ok, err := MapWebhook(EventChatMessage, body, "mystream")
+	_, ok, err := MapWebhook(EventChatMessage, body, "mystream", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestMapWebhookKicksGifted(t *testing.T) {
 		"gift": {"amount": 500, "name": "Rage Quit", "message": "nice stream"}
 	}`)
 
-	mapped, ok, err := MapWebhook(EventKicksGifted, body, "mystream")
+	mapped, ok, err := MapWebhook(EventKicksGifted, body, "mystream", "hdr-gift-1")
 	if err != nil || !ok {
 		t.Fatalf("expected kicks gifted mapping: ok=%v err=%v", ok, err)
 	}
@@ -67,7 +67,7 @@ func TestMapWebhookFollower(t *testing.T) {
 		"follower": {"username": "newfan"}
 	}`)
 
-	mapped, ok, err := MapWebhook(EventChannelFollowed, body, "mystream")
+	mapped, ok, err := MapWebhook(EventChannelFollowed, body, "mystream", "hdr-follow-1")
 	if err != nil || !ok || mapped.Event == nil {
 		t.Fatalf("expected follower event: ok=%v err=%v", ok, err)
 	}

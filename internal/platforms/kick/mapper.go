@@ -13,7 +13,7 @@ type MappedItem struct {
 	Event   *platform.IngestEventInput
 }
 
-func MapWebhook(eventType string, body []byte, channelSlug string) (MappedItem, bool, error) {
+func MapWebhook(eventType string, body []byte, channelSlug, messageID string) (MappedItem, bool, error) {
 	switch eventType {
 	case EventChatMessage:
 		var payload ChatMessagePayload
@@ -57,7 +57,7 @@ func MapWebhook(eventType string, body []byte, channelSlug string) (MappedItem, 
 				Type:       "follower",
 				Platform:   PlatformName,
 				Username:   username,
-				ExternalID: externalIDFromBody(eventType, body),
+				ExternalID: externalID(messageID, eventType, body),
 				Payload:    json.RawMessage(body),
 			},
 		}, true, nil
@@ -79,7 +79,7 @@ func MapWebhook(eventType string, body []byte, channelSlug string) (MappedItem, 
 				Type:       "subscriber",
 				Platform:   PlatformName,
 				Username:   username,
-				ExternalID: externalIDFromBody(eventType, body),
+				ExternalID: externalID(messageID, eventType, body),
 				Payload:    json.RawMessage(body),
 			},
 		}, true, nil
@@ -104,7 +104,7 @@ func MapWebhook(eventType string, body []byte, channelSlug string) (MappedItem, 
 				Type:       "subscriber",
 				Platform:   PlatformName,
 				Username:   username,
-				ExternalID: externalIDFromBody(eventType, body),
+				ExternalID: externalID(messageID, eventType, body),
 				Payload:    json.RawMessage(body),
 			},
 		}, true, nil
@@ -138,13 +138,13 @@ func MapWebhook(eventType string, body []byte, channelSlug string) (MappedItem, 
 				Username:    username,
 				DisplayName: payload.Sender.Username,
 				Content:     chatContent,
-				ExternalID:  externalIDFromBody(eventType, body) + ":msg",
+				ExternalID:  externalID(messageID, eventType, body) + ":msg",
 			},
 			Event: &platform.IngestEventInput{
 				Type:       "donation",
 				Platform:   PlatformName,
 				Username:   username,
-				ExternalID: externalIDFromBody(eventType, body),
+				ExternalID: externalID(messageID, eventType, body),
 				Payload:    eventPayload,
 			},
 		}, true, nil
@@ -154,7 +154,10 @@ func MapWebhook(eventType string, body []byte, channelSlug string) (MappedItem, 
 	}
 }
 
-func externalIDFromBody(eventType string, body []byte) string {
+func externalID(messageID, eventType string, body []byte) string {
+	if messageID != "" {
+		return messageID
+	}
 	var meta struct {
 		MessageID string `json:"message_id"`
 	}

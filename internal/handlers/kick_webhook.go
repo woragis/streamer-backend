@@ -60,7 +60,7 @@ func (h *KickWebhookHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	mapped, ok, err := kick.MapWebhook(eventType, body, h.PlatformCfg.KickChannelSlug)
+	mapped, ok, err := kick.MapWebhook(eventType, body, h.PlatformCfg.KickChannelSlug, messageID)
 	if err != nil {
 		log.Printf("kick webhook: map %s: %v", eventType, err)
 		WriteError(w, http.StatusBadRequest, "invalid payload")

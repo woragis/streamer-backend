@@ -57,6 +57,7 @@ Servidor em `http://localhost:8080`.
 | POST | `/api/v1/rooms/{roomId}/calisthenics/acquisitions/{id}/ack` | Bearer |
 | GET | `/api/v1/rooms/{roomId}/calisthenics/stats?month=2026-06` | — |
 | WS | `/api/v1/rooms/{roomId}/subscribe?domain=all&token=` | token opcional se `STATE_API_TOKEN` set |
+| POST | `/api/v1/webhooks/kick` | — (Kick signature) |
 | POST | `/api/v1/rooms/{roomId}/chat/ingest` | Bearer |
 | GET | `/api/v1/rooms/{roomId}/chat/messages?limit=50` | — |
 | DELETE | `/api/v1/rooms/{roomId}/chat/messages/{messageId}` | Bearer |
@@ -226,3 +227,49 @@ curl -X POST http://localhost:8080/api/v1/rooms/default/chat/ingest \
   -H "Content-Type: application/json" \
   -d '{"platform":"youtube","username":"v1","content":"hi","externalId":"yt-msg-001"}'
 ```
+
+## Platform ingest (Fase H)
+
+YouTube e Kick alimentam o mesmo pipeline de ingest. O **worker** roda separado da API.
+
+```bash
+# Terminal 1 — API (consumer desligado)
+CONSUMER_ENABLED=false make run
+
+# Terminal 2 — worker (YouTube poll + Redis consumer)
+GOOGLE_API_KEY=... YOUTUBE_CHANNEL_ID=UC... make run-worker
+```
+
+### YouTube (worker)
+
+| Variável | Descrição |
+|----------|-----------|
+| `GOOGLE_API_KEY` | API key do Google Cloud (YouTube Data API v3) |
+| `YOUTUBE_CHANNEL_ID` | ID do canal (`UC...`) |
+| `YOUTUBE_IDLE_SECONDS` | Intervalo quando não há live (default 30) |
+
+Mapeia mensagens, super chats, super stickers e novos membros.
+
+### Kick (webhook na API)
+
+| Variável | Descrição |
+|----------|-----------|
+| `KICK_CHANNEL_SLUG` | Slug do canal (filtra eventos) |
+| `KICK_WEBHOOK_SKIP_VERIFY` | `true` só em dev (pula RSA) |
+
+Endpoint público (sem Bearer):
+
+```text
+POST /api/v1/webhooks/kick
+```
+
+Headers Kick: `Kick-Event-Type`, `Kick-Event-Message-Id`, `Kick-Event-Message-Timestamp`, `Kick-Event-Signature`.
+
+### Docker worker
+
+```bash
+cp .env.example backend/.env   # preencher GOOGLE_API_KEY etc.
+docker compose up -d           # sobe postgres, redis e worker
+```
+
+Ver [docs/phases/phase-h-platform-ingest.md](../docs/phases/phase-h-platform-ingest.md).
