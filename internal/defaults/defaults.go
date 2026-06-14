@@ -159,6 +159,7 @@ func CalisthenicsState() json.RawMessage {
 		},
 		"timers": map[string]any{
 			"rest": timer("rest", "countdown", "Rest", 90, 0),
+			"hold": timer("hold", "stopwatch", "Hold", 0, 0),
 		},
 	})
 }

@@ -68,7 +68,11 @@ func (s *Store) Seed(ctx context.Context) error {
 		}
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return s.EnsureCalisthenics(ctx, defaults.DefaultRoomID)
 }
 
 func insertDocIfMissing(ctx context.Context, tx *sql.Tx, roomID, key string, data json.RawMessage, now string) error {
