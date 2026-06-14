@@ -5,6 +5,7 @@ API de estado para sync entre painel `/control` e overlays OBS.
 ## Quick start
 
 ```bash
+# Na raiz streamer/: make up  (Postgres + Redis)
 cp .env.example .env
 make run
 ```
