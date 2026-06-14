@@ -72,6 +72,9 @@ func (s *Store) Seed(ctx context.Context) error {
 		return err
 	}
 
+	if err := s.EnsureLeetCode(ctx, defaults.DefaultRoomID); err != nil {
+		return err
+	}
 	return s.EnsureCalisthenics(ctx, defaults.DefaultRoomID)
 }
 

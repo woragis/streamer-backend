@@ -875,7 +875,9 @@ func (s *Store) getSetScoped(ctx context.Context, roomID, setID string) (calisth
 }
 
 type sqlExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
 func scanWorkouts(rows *sql.Rows) ([]calisthenics.Workout, error) {

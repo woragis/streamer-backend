@@ -35,6 +35,7 @@ func main() {
 
 	roomHandler := &handlers.RoomHandler{Store: st}
 	calHandler := &handlers.CalisthenicsHandler{Store: st}
+	lcHandler := &handlers.LeetCodeHandler{Store: st}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -63,6 +64,34 @@ func main() {
 
 			r.Get("/leetcode/state", roomHandler.GetLeetCodeState)
 			r.Put("/leetcode/state", roomHandler.PutLeetCodeState)
+
+			r.Get("/leetcode/sessions", lcHandler.ListSessions)
+			r.Post("/leetcode/sessions", lcHandler.CreateSession)
+			r.Get("/leetcode/sessions/{sessionId}", lcHandler.GetSession)
+			r.Patch("/leetcode/sessions/{sessionId}", lcHandler.UpdateSession)
+
+			r.Get("/leetcode/plan", lcHandler.ListPlan)
+			r.Post("/leetcode/plan", lcHandler.CreatePlanItem)
+			r.Patch("/leetcode/plan/{itemId}", lcHandler.UpdatePlanItem)
+			r.Delete("/leetcode/plan/{itemId}", lcHandler.DeletePlanItem)
+			r.Post("/leetcode/plan/{itemId}/toggle", lcHandler.TogglePlanItem)
+
+			r.Get("/leetcode/problems", lcHandler.ListProblems)
+			r.Post("/leetcode/problems", lcHandler.CreateProblem)
+			r.Get("/leetcode/problems/{problemId}", lcHandler.GetProblem)
+			r.Patch("/leetcode/problems/{problemId}", lcHandler.UpdateProblem)
+			r.Delete("/leetcode/problems/{problemId}", lcHandler.DeleteProblem)
+			r.Post("/leetcode/problems/{problemId}/activate", lcHandler.ActivateProblem)
+			r.Post("/leetcode/problems/{problemId}/solve", lcHandler.SolveProblem)
+			r.Post("/leetcode/problems/{problemId}/skip", lcHandler.SkipProblem)
+
+			r.Get("/leetcode/stats/streak", lcHandler.GetStreak)
+			r.Get("/leetcode/stats", lcHandler.GetStats)
+			r.Get("/leetcode/attempts", lcHandler.ListAttempts)
+
+			r.Get("/leetcode/timers", lcHandler.GetTimers)
+			r.Get("/leetcode/timers/{timerId}", lcHandler.GetTimers)
+			r.Put("/leetcode/timers/{timerId}", lcHandler.PutTimer)
 
 			r.Get("/calisthenics/state", roomHandler.GetCalisthenicsState)
 			r.Put("/calisthenics/state", roomHandler.PutCalisthenicsState)

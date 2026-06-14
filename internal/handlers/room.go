@@ -188,11 +188,42 @@ func (h *RoomHandler) putStreamTimerAction(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *RoomHandler) GetLeetCodeState(w http.ResponseWriter, r *http.Request) {
-	h.getDoc(w, r, store.DocLeetCode)
+	roomID := chi.URLParam(r, "roomId")
+	if !h.ensureRoom(r.Context(), w, roomID) {
+		return
+	}
+	state, err := h.Store.GetLeetCodeState(r.Context(), roomID)
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	SetETag(w, state.Revision)
+	WriteJSON(w, http.StatusOK, state)
 }
 
 func (h *RoomHandler) PutLeetCodeState(w http.ResponseWriter, r *http.Request) {
-	h.putDoc(w, r, store.DocLeetCode)
+	roomID := chi.URLParam(r, "roomId")
+	if !h.ensureRoom(r.Context(), w, roomID) {
+		return
+	}
+	body, err := ReadRawBody(r)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+	expected := store.ParseExpectedRevision(ParseIfMatch(r), body)
+	data := store.StripRevisionField(body)
+	state, err := h.Store.PutLeetCodeState(r.Context(), roomID, data, expected)
+	if errors.Is(err, store.ErrRevisionConflict) {
+		WriteError(w, http.StatusConflict, "revision conflict")
+		return
+	}
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	SetETag(w, state.Revision)
+	WriteJSON(w, http.StatusOK, state)
 }
 
 func (h *RoomHandler) GetCalisthenicsState(w http.ResponseWriter, r *http.Request) {

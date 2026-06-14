@@ -20,6 +20,21 @@ Servidor em `http://localhost:8080`.
 | GET/PUT | `/api/v1/rooms/{roomId}/branding` | PUT: Bearer |
 | GET/PUT | `/api/v1/rooms/{roomId}/timers/stream` | PUT: Bearer |
 | GET/PUT | `/api/v1/rooms/{roomId}/leetcode/state` | PUT: Bearer |
+| GET/POST | `/api/v1/rooms/{roomId}/leetcode/sessions` | POST: Bearer |
+| GET/PATCH | `/api/v1/rooms/{roomId}/leetcode/sessions/{sessionId}` | PATCH: Bearer |
+| GET/POST | `/api/v1/rooms/{roomId}/leetcode/plan` | POST: Bearer |
+| PATCH/DELETE | `/api/v1/rooms/{roomId}/leetcode/plan/{itemId}` | Bearer |
+| POST | `/api/v1/rooms/{roomId}/leetcode/plan/{itemId}/toggle` | Bearer |
+| GET/POST | `/api/v1/rooms/{roomId}/leetcode/problems` | POST: Bearer |
+| GET/PATCH/DELETE | `/api/v1/rooms/{roomId}/leetcode/problems/{problemId}` | write: Bearer |
+| POST | `/api/v1/rooms/{roomId}/leetcode/problems/{problemId}/activate` | Bearer |
+| POST | `/api/v1/rooms/{roomId}/leetcode/problems/{problemId}/solve` | Bearer |
+| POST | `/api/v1/rooms/{roomId}/leetcode/problems/{problemId}/skip` | Bearer |
+| GET | `/api/v1/rooms/{roomId}/leetcode/stats?month=2025-06` | — |
+| GET | `/api/v1/rooms/{roomId}/leetcode/stats?liveSessionId={id}` | — |
+| GET | `/api/v1/rooms/{roomId}/leetcode/stats/streak` | — |
+| GET | `/api/v1/rooms/{roomId}/leetcode/attempts?liveSessionId=` | — |
+| GET/PUT | `/api/v1/rooms/{roomId}/leetcode/timers/{timerId}` | PUT: Bearer |
 | GET/PUT | `/api/v1/rooms/{roomId}/calisthenics/state` | PUT: Bearer |
 | GET | `/api/v1/rooms/{roomId}/calisthenics/workouts` | — |
 | POST | `/api/v1/rooms/{roomId}/calisthenics/workouts` | Bearer |
@@ -59,11 +74,19 @@ curl -X PUT http://localhost:8080/api/v1/rooms/default/calisthenics/timers/rest 
   -H "Content-Type: application/json" \
   -d '{"action":"start"}'
 
-# Stream timer — ação rápida
-curl -X PUT http://localhost:8080/api/v1/rooms/default/timers/stream \
+# LeetCode — iniciar live e resolver problema
+curl -X POST http://localhost:8080/api/v1/rooms/default/leetcode/sessions \
   -H "Authorization: Bearer dev-token" \
   -H "Content-Type: application/json" \
-  -d '{"action":"start"}'
+  -d '{"domain":"leetcode","platforms":["youtube"],"title":"Daily #47"}'
+
+curl -X POST http://localhost:8080/api/v1/rooms/default/leetcode/problems/239/activate \
+  -H "Authorization: Bearer dev-token"
+
+curl -X POST http://localhost:8080/api/v1/rooms/default/leetcode/problems/239/solve \
+  -H "Authorization: Bearer dev-token"
+
+curl "http://localhost:8080/api/v1/rooms/default/leetcode/stats/streak"
 ```
 
 ### Optimistic locking
@@ -80,7 +103,7 @@ curl -X PUT http://localhost:8080/api/v1/rooms/default/timers/stream \
 
 - [x] Fase A — MVP Sync
 - [x] Fase B — Calisthenics model (workout → exercise → set)
-- [ ] Fase C — LeetCode model
+- [x] Fase C — LeetCode model (problems, attempts, stats, live sessions)
 - [ ] Fase D — Skill tracking
 - [ ] Fase E — Chat & analytics
 
