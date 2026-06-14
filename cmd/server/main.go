@@ -116,6 +116,25 @@ func main() {
 			r.Get("/calisthenics/timers", calHandler.GetTimers)
 			r.Get("/calisthenics/timers/{timerId}", calHandler.GetTimers)
 			r.Put("/calisthenics/timers/{timerId}", calHandler.PutTimer)
+
+			r.Get("/calisthenics/movements/categories", calHandler.ListMovementCategories)
+			r.Get("/calisthenics/movements", calHandler.ListMovements)
+			r.Post("/calisthenics/movements", calHandler.CreateMovement)
+			r.Get("/calisthenics/movements/{movementId}", calHandler.GetMovement)
+			r.Patch("/calisthenics/movements/{movementId}", calHandler.UpdateMovement)
+			r.Delete("/calisthenics/movements/{movementId}", calHandler.DeleteMovement)
+			r.Get("/calisthenics/movements/{movementId}/proficiency", calHandler.GetProficiency)
+			r.Put("/calisthenics/movements/{movementId}/proficiency", calHandler.UpdateProficiency)
+			r.Get("/calisthenics/movements/{movementId}/history", calHandler.GetMovementHistory)
+
+			r.Get("/calisthenics/acquisitions", calHandler.ListAcquisitions)
+			r.Post("/calisthenics/acquisitions", calHandler.CreateAcquisition)
+			r.Get("/calisthenics/acquisitions/{acquisitionId}", calHandler.GetAcquisition)
+			r.Delete("/calisthenics/acquisitions/{acquisitionId}", calHandler.DeleteAcquisition)
+			r.Post("/calisthenics/acquisitions/{acquisitionId}/ack", calHandler.AcknowledgeAcquisition)
+
+			r.Get("/calisthenics/stats", calHandler.GetSkillStats)
+			r.Post("/calisthenics/practice-logs", calHandler.CreatePracticeLog)
 		})
 	})
 

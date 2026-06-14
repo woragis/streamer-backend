@@ -179,7 +179,12 @@ func (s *Store) GetCalisthenicsState(ctx context.Context, roomID string) (calist
 		if err != nil {
 			return calisthenics.State{}, err
 		}
-		views = append(views, calisthenics.BuildExerciseView(ex, sets))
+	views = append(views, calisthenics.BuildExerciseView(ex, sets))
+	}
+
+	alert, err := s.GetPendingSkillAlert(ctx, roomID)
+	if err != nil {
+		return calisthenics.State{}, err
 	}
 
 	return calisthenics.State{
@@ -192,7 +197,8 @@ func (s *Store) GetCalisthenicsState(ctx context.Context, roomID string) (calist
 			Label:    rt.TodayGoalLabel,
 			Progress: rt.TodayGoalProgress,
 		},
-		Timers: rt.Timers,
+		Timers:     rt.Timers,
+		SkillAlert: alert,
 	}, nil
 }
 

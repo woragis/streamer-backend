@@ -75,7 +75,10 @@ func (s *Store) Seed(ctx context.Context) error {
 	if err := s.EnsureLeetCode(ctx, defaults.DefaultRoomID); err != nil {
 		return err
 	}
-	return s.EnsureCalisthenics(ctx, defaults.DefaultRoomID)
+	if err := s.EnsureCalisthenics(ctx, defaults.DefaultRoomID); err != nil {
+		return err
+	}
+	return s.EnsureSkillCatalog(ctx, defaults.DefaultRoomID)
 }
 
 func insertDocIfMissing(ctx context.Context, tx *sql.Tx, roomID, key string, data json.RawMessage, now string) error {

@@ -47,6 +47,14 @@ Servidor em `http://localhost:8080`.
 | POST | `/api/v1/rooms/{roomId}/calisthenics/sets/{setId}/increment-rep` | Bearer |
 | POST | `/api/v1/rooms/{roomId}/calisthenics/sets/{setId}/skip` | Bearer |
 | GET/PUT | `/api/v1/rooms/{roomId}/calisthenics/timers/{timerId}` | PUT: Bearer |
+| GET | `/api/v1/rooms/{roomId}/calisthenics/movements?level=learning` | — |
+| GET/POST | `/api/v1/rooms/{roomId}/calisthenics/movements` | POST: Bearer |
+| GET/PATCH/DELETE | `/api/v1/rooms/{roomId}/calisthenics/movements/{movementId}` | write: Bearer |
+| GET/PUT | `/api/v1/rooms/{roomId}/calisthenics/movements/{movementId}/proficiency` | PUT: Bearer |
+| GET | `/api/v1/rooms/{roomId}/calisthenics/movements/{movementId}/history` | — |
+| GET/POST | `/api/v1/rooms/{roomId}/calisthenics/acquisitions` | POST: Bearer |
+| POST | `/api/v1/rooms/{roomId}/calisthenics/acquisitions/{id}/ack` | Bearer |
+| GET | `/api/v1/rooms/{roomId}/calisthenics/stats?month=2026-06` | — |
 
 Room padrão: `default` (seed automático na primeira execução).
 
@@ -87,6 +95,15 @@ curl -X POST http://localhost:8080/api/v1/rooms/default/leetcode/problems/239/so
   -H "Authorization: Bearer dev-token"
 
 curl "http://localhost:8080/api/v1/rooms/default/leetcode/stats/streak"
+
+# Calisthenics — marcar skill adquirida
+curl -X POST http://localhost:8080/api/v1/rooms/default/calisthenics/acquisitions \
+  -H "Authorization: Bearer dev-token" \
+  -H "Content-Type: application/json" \
+  -d '{"movementId":"muscle-up","proficiencyAfter":"consistent","notes":"Primeiro rep limpo"}'
+
+curl http://localhost:8080/api/v1/rooms/default/calisthenics/state
+# skillAlert aparece no state até POST .../acquisitions/{id}/ack
 ```
 
 ### Optimistic locking
@@ -104,7 +121,7 @@ curl "http://localhost:8080/api/v1/rooms/default/leetcode/stats/streak"
 - [x] Fase A — MVP Sync
 - [x] Fase B — Calisthenics model (workout → exercise → set)
 - [x] Fase C — LeetCode model (problems, attempts, stats, live sessions)
-- [ ] Fase D — Skill tracking
+- [x] Fase D — Skill tracking (movements, proficiency, acquisitions)
 - [ ] Fase E — Chat & analytics
 
 ## Stack

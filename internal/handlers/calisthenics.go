@@ -307,6 +307,239 @@ func (h *CalisthenicsHandler) PutTimer(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(updated)
 }
 
+/* ─── Skills (Phase D) ─── */
+
+func (h *CalisthenicsHandler) ListMovementCategories(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	items, err := h.Store.ListMovementCategories(r.Context(), roomID)
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, items)
+}
+
+func (h *CalisthenicsHandler) ListMovements(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	items, err := h.Store.ListMovements(r.Context(), roomID, r.URL.Query().Get("level"))
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, items)
+}
+
+func (h *CalisthenicsHandler) CreateMovement(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	var in calisthenics.CreateMovementInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+	m, err := h.Store.CreateMovement(r.Context(), roomID, in)
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusCreated, m)
+}
+
+func (h *CalisthenicsHandler) GetMovement(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	m, err := h.Store.GetMovement(r.Context(), roomID, chi.URLParam(r, "movementId"))
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, m)
+}
+
+func (h *CalisthenicsHandler) UpdateMovement(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	var in calisthenics.UpdateMovementInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+	m, err := h.Store.UpdateMovement(r.Context(), roomID, chi.URLParam(r, "movementId"), in)
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, m)
+}
+
+func (h *CalisthenicsHandler) DeleteMovement(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	if err := h.Store.DeleteMovement(r.Context(), roomID, chi.URLParam(r, "movementId")); err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *CalisthenicsHandler) GetProficiency(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	p, err := h.Store.GetProficiency(r.Context(), roomID, chi.URLParam(r, "movementId"))
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, p)
+}
+
+func (h *CalisthenicsHandler) UpdateProficiency(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	var in calisthenics.UpdateProficiencyInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+	p, err := h.Store.UpdateProficiency(r.Context(), roomID, chi.URLParam(r, "movementId"), in)
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, p)
+}
+
+func (h *CalisthenicsHandler) ListAcquisitions(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	q := r.URL.Query()
+	items, err := h.Store.ListAcquisitions(r.Context(), roomID, q.Get("month"), q.Get("liveSessionId"), q.Get("movementId"))
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, items)
+}
+
+func (h *CalisthenicsHandler) CreateAcquisition(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	var in calisthenics.CreateAcquisitionInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+	a, err := h.Store.CreateAcquisition(r.Context(), roomID, in)
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusCreated, a)
+}
+
+func (h *CalisthenicsHandler) GetAcquisition(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	a, err := h.Store.GetAcquisition(r.Context(), roomID, chi.URLParam(r, "acquisitionId"))
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, a)
+}
+
+func (h *CalisthenicsHandler) DeleteAcquisition(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	if err := h.Store.DeleteAcquisition(r.Context(), roomID, chi.URLParam(r, "acquisitionId")); err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *CalisthenicsHandler) AcknowledgeAcquisition(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	if err := h.Store.AcknowledgeAcquisition(r.Context(), roomID, chi.URLParam(r, "acquisitionId")); err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *CalisthenicsHandler) GetMovementHistory(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	history, err := h.Store.GetMovementHistory(r.Context(), roomID, chi.URLParam(r, "movementId"))
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, history)
+}
+
+func (h *CalisthenicsHandler) GetSkillStats(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	q := r.URL.Query()
+	stats, err := h.Store.GetSkillStats(r.Context(), roomID, q.Get("month"), q.Get("liveSessionId"))
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, stats)
+}
+
+func (h *CalisthenicsHandler) CreatePracticeLog(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := h.ensureRoom(w, r)
+	if !ok {
+		return
+	}
+	var in calisthenics.CreatePracticeLogInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+	if err := h.Store.CreatePracticeLog(r.Context(), roomID, in); err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
 func writeStoreErr(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, store.ErrNotFound):
