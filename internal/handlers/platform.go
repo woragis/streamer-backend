@@ -13,7 +13,8 @@ import (
 )
 
 type PlatformHandler struct {
-	Store *store.Store
+	Store      *store.Store
+	IngestMode string
 }
 
 func (h *PlatformHandler) ensureRoom(ctx context.Context, w http.ResponseWriter, roomID string) bool {
@@ -39,9 +40,28 @@ func (h *PlatformHandler) IngestMessage(w http.ResponseWriter, r *http.Request) 
 		WriteError(w, http.StatusBadRequest, "invalid json body")
 		return
 	}
+
+	if h.IngestMode == "queue" {
+		if !h.Store.QueueEnabled() {
+			WriteError(w, http.StatusServiceUnavailable, "ingest queue unavailable")
+			return
+		}
+		jobID, err := h.Store.EnqueueIngestMessage(r.Context(), roomID, in)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		WriteJSON(w, http.StatusAccepted, platform.IngestResult{Queued: true, JobID: jobID})
+		return
+	}
+
 	result, err := h.Store.IngestMessage(r.Context(), roomID, in)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if result.Duplicate {
+		WriteJSON(w, http.StatusOK, result)
 		return
 	}
 	WriteJSON(w, http.StatusCreated, result)
@@ -57,7 +77,26 @@ func (h *PlatformHandler) IngestEvent(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusBadRequest, "invalid json body")
 		return
 	}
+
+	if h.IngestMode == "queue" {
+		if !h.Store.QueueEnabled() {
+			WriteError(w, http.StatusServiceUnavailable, "ingest queue unavailable")
+			return
+		}
+		jobID, err := h.Store.EnqueueIngestEvent(r.Context(), roomID, in)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		WriteJSON(w, http.StatusAccepted, map[string]any{"queued": true, "jobId": jobID})
+		return
+	}
+
 	ev, err := h.Store.IngestStreamEvent(r.Context(), roomID, in)
+	if errors.Is(err, store.ErrDuplicateIngest) {
+		WriteJSON(w, http.StatusOK, map[string]bool{"duplicate": true})
+		return
+	}
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, err.Error())
 		return

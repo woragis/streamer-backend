@@ -17,7 +17,10 @@ import (
 	"github.com/woragis/streamer-backend/internal/handlers"
 	appmw "github.com/woragis/streamer-backend/internal/middleware"
 	appredis "github.com/woragis/streamer-backend/internal/redis"
+	"github.com/woragis/streamer-backend/internal/dedup"
+	"github.com/woragis/streamer-backend/internal/queue"
 	"github.com/woragis/streamer-backend/internal/store"
+	"github.com/woragis/streamer-backend/internal/worker"
 	"github.com/woragis/streamer-backend/internal/ws"
 )
 
@@ -38,7 +41,7 @@ func main() {
 	}
 	defer func() { _ = redisClient.Close() }()
 	if cfg.RedisURL != "" {
-		log.Printf("redis: %s (instance %s)", redisClient.Status(), cfg.InstanceID)
+		log.Printf("redis: %s (instance %s, ingest=%s)", redisClient.Status(), cfg.InstanceID, cfg.IngestMode)
 	}
 
 	st := store.New(database)
@@ -60,12 +63,27 @@ func main() {
 
 	st.SetBus(eventBus)
 
+	ingestQueue := queue.New(redisClient.Raw())
+	dedupStore := dedup.New(redisClient.Raw())
+	if ingestQueue != nil && ingestQueue.Enabled() {
+		st.SetQueue(ingestQueue)
+		st.SetDedup(dedupStore)
+		if cfg.ConsumerEnabled {
+			worker.StartIngestConsumer(ctx, ingestQueue, st, cfg.InstanceID+"-ingest")
+		}
+	}
+
 	roomHandler := &handlers.RoomHandler{Store: st}
 	calHandler := &handlers.CalisthenicsHandler{Store: st}
 	lcHandler := &handlers.LeetCodeHandler{Store: st}
-	platformHandler := &handlers.PlatformHandler{Store: st}
+	platformHandler := &handlers.PlatformHandler{Store: st, IngestMode: cfg.IngestMode}
 	wsHandler := &handlers.WSHandler{Hub: hub, Token: cfg.StateAPIToken}
-	healthHandler := &handlers.HealthHandler{Redis: redisClient, InstanceID: cfg.InstanceID}
+	healthHandler := &handlers.HealthHandler{
+		Redis:      redisClient,
+		Queue:      ingestQueue,
+		InstanceID: cfg.InstanceID,
+		IngestMode: cfg.IngestMode,
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

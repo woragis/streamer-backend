@@ -10,10 +10,13 @@ import (
 
 	"github.com/woragis/streamer-backend/internal/defaults"
 	"github.com/woragis/streamer-backend/internal/bus"
+	"github.com/woragis/streamer-backend/internal/dedup"
+	"github.com/woragis/streamer-backend/internal/queue"
 )
 
 var ErrNotFound = errors.New("not found")
 var ErrRevisionConflict = errors.New("revision conflict")
+var ErrDuplicateIngest = errors.New("duplicate ingest")
 
 const (
 	DocBranding     = "branding"
@@ -30,12 +33,26 @@ type Document struct {
 }
 
 type Store struct {
-	db  *sql.DB
-	bus bus.Bus
+	db    *sql.DB
+	bus   bus.Bus
+	queue *queue.IngestQueue
+	dedup *dedup.Store
 }
 
 func New(db *sql.DB) *Store {
 	return &Store{db: db}
+}
+
+func (s *Store) SetQueue(q *queue.IngestQueue) {
+	s.queue = q
+}
+
+func (s *Store) SetDedup(d *dedup.Store) {
+	s.dedup = d
+}
+
+func (s *Store) QueueEnabled() bool {
+	return s.queue != nil && s.queue.Enabled()
 }
 
 func (s *Store) Seed(ctx context.Context) error {

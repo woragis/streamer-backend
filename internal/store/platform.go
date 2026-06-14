@@ -79,11 +79,28 @@ func (s *Store) getUser(ctx context.Context, userID string) (platform.User, erro
 }
 
 func (s *Store) IngestMessage(ctx context.Context, roomID string, in platform.IngestMessageInput) (platform.IngestResult, error) {
-	if err := s.EnsurePlatform(ctx, roomID); err != nil {
-		return platform.IngestResult{}, err
-	}
 	if in.Platform == "" || in.Username == "" || in.Content == "" {
 		return platform.IngestResult{}, fmt.Errorf("platform, username and content required")
+	}
+	if s.dedup != nil && in.ExternalID != "" {
+		ok, err := s.dedup.MarkIfNew(ctx, "msg", in.Platform, in.ExternalID)
+		if err != nil {
+			return platform.IngestResult{}, err
+		}
+		if !ok {
+			return platform.IngestResult{Duplicate: true}, nil
+		}
+	}
+	result, err := s.ingestMessageDirect(ctx, roomID, in)
+	if err != nil && s.dedup != nil && in.ExternalID != "" {
+		_ = s.dedup.Release(ctx, "msg", in.Platform, in.ExternalID)
+	}
+	return result, err
+}
+
+func (s *Store) ingestMessageDirect(ctx context.Context, roomID string, in platform.IngestMessageInput) (platform.IngestResult, error) {
+	if err := s.EnsurePlatform(ctx, roomID); err != nil {
+		return platform.IngestResult{}, err
 	}
 
 	user, err := s.UpsertUser(ctx, roomID, in.Platform, in.Username, in.DisplayName)
@@ -121,6 +138,23 @@ func (s *Store) IngestStreamEvent(ctx context.Context, roomID string, in platfor
 	if in.Type == "" {
 		return platform.StreamEvent{}, fmt.Errorf("type required")
 	}
+	if s.dedup != nil && in.ExternalID != "" {
+		ok, err := s.dedup.MarkIfNew(ctx, "evt", in.Platform, in.ExternalID)
+		if err != nil {
+			return platform.StreamEvent{}, err
+		}
+		if !ok {
+			return platform.StreamEvent{}, ErrDuplicateIngest
+		}
+	}
+	ev, err := s.ingestStreamEventDirect(ctx, roomID, in)
+	if err != nil && s.dedup != nil && in.ExternalID != "" {
+		_ = s.dedup.Release(ctx, "evt", in.Platform, in.ExternalID)
+	}
+	return ev, err
+}
+
+func (s *Store) ingestStreamEventDirect(ctx context.Context, roomID string, in platform.IngestEventInput) (platform.StreamEvent, error) {
 	now := platform.NowISO()
 	id := platform.NewID("evt")
 	payload := in.Payload

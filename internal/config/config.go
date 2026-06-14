@@ -6,12 +6,14 @@ import (
 )
 
 type Config struct {
-	Port          string
-	DatabaseURL   string
-	StateAPIToken string
-	CORSOrigins   []string
-	RedisURL      string
-	InstanceID    string
+	Port            string
+	DatabaseURL     string
+	StateAPIToken   string
+	CORSOrigins     []string
+	RedisURL        string
+	InstanceID      string
+	IngestMode      string
+	ConsumerEnabled bool
 }
 
 func Load() Config {
@@ -46,13 +48,25 @@ func Load() Config {
 		}
 	}
 
+	ingestMode := strings.ToLower(strings.TrimSpace(os.Getenv("INGEST_MODE")))
+	if ingestMode == "" {
+		ingestMode = "sync"
+	}
+
+	consumerEnabled := true
+	if v := strings.ToLower(strings.TrimSpace(os.Getenv("CONSUMER_ENABLED"))); v == "false" || v == "0" {
+		consumerEnabled = false
+	}
+
 	return Config{
-		Port:          port,
-		DatabaseURL:   dbURL,
-		StateAPIToken: token,
-		CORSOrigins:   origins,
-		RedisURL:      strings.TrimSpace(os.Getenv("REDIS_URL")),
-		InstanceID:    instanceID,
+		Port:            port,
+		DatabaseURL:     dbURL,
+		StateAPIToken:   token,
+		CORSOrigins:     origins,
+		RedisURL:        strings.TrimSpace(os.Getenv("REDIS_URL")),
+		InstanceID:      instanceID,
+		IngestMode:      ingestMode,
+		ConsumerEnabled: consumerEnabled,
 	}
 }
 

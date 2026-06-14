@@ -53,6 +53,7 @@ type IngestMessageInput struct {
 	Username      string  `json:"username"`
 	DisplayName   string  `json:"displayName,omitempty"`
 	Content       string  `json:"content"`
+	ExternalID    string  `json:"externalId,omitempty"`
 	LiveSessionID *string `json:"liveSessionId,omitempty"`
 }
 
@@ -60,6 +61,7 @@ type IngestEventInput struct {
 	Type          string          `json:"type"`
 	Platform      string          `json:"platform"`
 	Username      string          `json:"username"`
+	ExternalID    string          `json:"externalId,omitempty"`
 	LiveSessionID *string         `json:"liveSessionId,omitempty"`
 	Payload       json.RawMessage `json:"payload,omitempty"`
 }
@@ -90,8 +92,11 @@ type RuleResult struct {
 }
 
 type IngestResult struct {
-	Message      Message      `json:"message"`
+	Message        Message      `json:"message,omitempty"`
 	TriggeredRules []RuleResult `json:"triggeredRules,omitempty"`
+	Duplicate      bool         `json:"duplicate,omitempty"`
+	Queued         bool         `json:"queued,omitempty"`
+	JobID          string       `json:"jobId,omitempty"`
 }
 
 type Dashboard struct {

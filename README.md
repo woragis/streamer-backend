@@ -151,6 +151,7 @@ curl "http://localhost:8080/api/v1/rooms/default/dashboard?month=2026-06"
 - [x] Fase D — Skill tracking (movements, proficiency, acquisitions)
 - [x] Fase E — Chat, WebSocket & dashboard
 - [x] Fase F — Redis pub/sub (multi-instance WebSocket)
+- [x] Fase F3 — Redis Streams ingest queue + dedup
 
 ## Stack
 
@@ -170,6 +171,8 @@ curl "http://localhost:8080/api/v1/rooms/default/dashboard?month=2026-06"
 | `CORS_ORIGINS` | `http://localhost:5173,...` |
 | `REDIS_URL` | _(vazio = desligado)_ |
 | `INSTANCE_ID` | hostname ou `state-api` |
+| `INGEST_MODE` | `sync` (default) ou `queue` |
+| `CONSUMER_ENABLED` | `true` — processa fila ingest no mesmo processo |
 
 ## Redis (Fase F)
 
@@ -180,7 +183,20 @@ make docker-up          # Redis 7 em localhost:6379
 cp .env.example .env    # REDIS_URL=redis://localhost:6379/0
 make run
 curl http://localhost:8080/health
-# {"status":"ok","redis":"ok","instanceId":"..."}
+# {"status":"ok","redis":"ok","instanceId":"...","ingestMode":"sync","ingestQueuePending":0}
 ```
 
 Sem `REDIS_URL`, a API funciona como antes (hub in-memory local). Com Redis down, status `degraded` e pub/sub desligado.
+
+### Ingest assíncrono (F3)
+
+Com `INGEST_MODE=queue`, `POST /chat/ingest` e `POST /events/ingest` enfileiram jobs em Redis Streams (`streamer:jobs:ingest`) e retornam `202` com `jobId`. O consumer roda no mesmo processo (`CONSUMER_ENABLED=true`).
+
+Dedup via `externalId` no body — replays idempotentes por 48h:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/rooms/default/chat/ingest \
+  -H "Authorization: Bearer dev-token" \
+  -H "Content-Type: application/json" \
+  -d '{"platform":"youtube","username":"v1","content":"hi","externalId":"yt-msg-001"}'
+```
