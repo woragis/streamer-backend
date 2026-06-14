@@ -21,6 +21,17 @@ Servidor em `http://localhost:8080`.
 | GET/PUT | `/api/v1/rooms/{roomId}/timers/stream` | PUT: Bearer |
 | GET/PUT | `/api/v1/rooms/{roomId}/leetcode/state` | PUT: Bearer |
 | GET/PUT | `/api/v1/rooms/{roomId}/calisthenics/state` | PUT: Bearer |
+| GET | `/api/v1/rooms/{roomId}/calisthenics/workouts` | — |
+| POST | `/api/v1/rooms/{roomId}/calisthenics/workouts` | Bearer |
+| GET/PATCH/DELETE | `/api/v1/rooms/{roomId}/calisthenics/workouts/{workoutId}` | write: Bearer |
+| GET/POST | `/api/v1/rooms/{roomId}/calisthenics/workouts/{workoutId}/exercises` | POST: Bearer |
+| PATCH/DELETE | `/api/v1/rooms/{roomId}/calisthenics/exercises/{exerciseId}` | Bearer |
+| POST | `/api/v1/rooms/{roomId}/calisthenics/exercises/{exerciseId}/activate` | Bearer |
+| GET | `/api/v1/rooms/{roomId}/calisthenics/exercises/{exerciseId}/sets` | — |
+| POST | `/api/v1/rooms/{roomId}/calisthenics/sets/{setId}/complete` | Bearer |
+| POST | `/api/v1/rooms/{roomId}/calisthenics/sets/{setId}/increment-rep` | Bearer |
+| POST | `/api/v1/rooms/{roomId}/calisthenics/sets/{setId}/skip` | Bearer |
+| GET/PUT | `/api/v1/rooms/{roomId}/calisthenics/timers/{timerId}` | PUT: Bearer |
 
 Room padrão: `default` (seed automático na primeira execução).
 
@@ -35,6 +46,18 @@ curl -X PUT http://localhost:8080/api/v1/rooms/default/session \
   -H "Authorization: Bearer dev-token" \
   -H "Content-Type: application/json" \
   -d '{"scene":"brb","startedAt":null,"streamEvents":{"latestSubscriber":"","latestFollower":"","latestDonation":""}}'
+
+# Calisthenics — increment rep no set ativo
+curl http://localhost:8080/api/v1/rooms/default/calisthenics/state
+# use setDetails[].id do exercise ativo:
+curl -X POST http://localhost:8080/api/v1/rooms/default/calisthenics/sets/{setId}/increment-rep \
+  -H "Authorization: Bearer dev-token"
+
+# Rest timer
+curl -X PUT http://localhost:8080/api/v1/rooms/default/calisthenics/timers/rest \
+  -H "Authorization: Bearer dev-token" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"start"}'
 
 # Stream timer — ação rápida
 curl -X PUT http://localhost:8080/api/v1/rooms/default/timers/stream \
@@ -56,7 +79,7 @@ curl -X PUT http://localhost:8080/api/v1/rooms/default/timers/stream \
 ## Status
 
 - [x] Fase A — MVP Sync
-- [ ] Fase B — Calisthenics model
+- [x] Fase B — Calisthenics model (workout → exercise → set)
 - [ ] Fase C — LeetCode model
 - [ ] Fase D — Skill tracking
 - [ ] Fase E — Chat & analytics

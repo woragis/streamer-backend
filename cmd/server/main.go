@@ -34,6 +34,7 @@ func main() {
 	}
 
 	roomHandler := &handlers.RoomHandler{Store: st}
+	calHandler := &handlers.CalisthenicsHandler{Store: st}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -65,6 +66,27 @@ func main() {
 
 			r.Get("/calisthenics/state", roomHandler.GetCalisthenicsState)
 			r.Put("/calisthenics/state", roomHandler.PutCalisthenicsState)
+
+			r.Get("/calisthenics/workouts", calHandler.ListWorkouts)
+			r.Post("/calisthenics/workouts", calHandler.CreateWorkout)
+			r.Get("/calisthenics/workouts/{workoutId}", calHandler.GetWorkout)
+			r.Patch("/calisthenics/workouts/{workoutId}", calHandler.UpdateWorkout)
+			r.Delete("/calisthenics/workouts/{workoutId}", calHandler.DeleteWorkout)
+
+			r.Get("/calisthenics/workouts/{workoutId}/exercises", calHandler.ListExercises)
+			r.Post("/calisthenics/workouts/{workoutId}/exercises", calHandler.CreateExercise)
+			r.Patch("/calisthenics/exercises/{exerciseId}", calHandler.UpdateExercise)
+			r.Delete("/calisthenics/exercises/{exerciseId}", calHandler.DeleteExercise)
+			r.Post("/calisthenics/exercises/{exerciseId}/activate", calHandler.ActivateExercise)
+
+			r.Get("/calisthenics/exercises/{exerciseId}/sets", calHandler.ListSets)
+			r.Post("/calisthenics/sets/{setId}/complete", calHandler.CompleteSet)
+			r.Post("/calisthenics/sets/{setId}/increment-rep", calHandler.IncrementRep)
+			r.Post("/calisthenics/sets/{setId}/skip", calHandler.SkipSet)
+
+			r.Get("/calisthenics/timers", calHandler.GetTimers)
+			r.Get("/calisthenics/timers/{timerId}", calHandler.GetTimers)
+			r.Put("/calisthenics/timers/{timerId}", calHandler.PutTimer)
 		})
 	})
 

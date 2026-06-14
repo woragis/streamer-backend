@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/woragis/streamer-backend/internal/store"
+	"github.com/woragis/streamer-backend/internal/timers"
 )
 
 type RoomHandler struct {
@@ -162,7 +163,7 @@ func (h *RoomHandler) putStreamTimerAction(w http.ResponseWriter, r *http.Reques
 	}
 
 	nowMs := time.Now().UnixMilli()
-	if err := applyTimerAction(timer, action, nowMs); err != nil {
+	if err := timers.ApplyAction(timer, action, nowMs); err != nil {
 		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -186,78 +187,6 @@ func (h *RoomHandler) putStreamTimerAction(w http.ResponseWriter, r *http.Reques
 	writeDoc(w, newDoc)
 }
 
-func applyTimerAction(timer map[string]any, action string, nowMs int64) error {
-	switch action {
-	case "start":
-		if running, _ := timer["running"].(bool); running {
-			return nil
-		}
-		timer["running"] = true
-		timer["startedAt"] = nowMs
-		if mode, _ := timer["mode"].(string); mode == "countdown" {
-			dur := toInt(timer["durationSeconds"])
-			acc := toInt(timer["accumulatedSeconds"])
-			remaining := dur - acc
-			if remaining < 0 {
-				remaining = 0
-			}
-			timer["endsAt"] = nowMs + int64(remaining)*1000
-		}
-	case "pause":
-		if running, _ := timer["running"].(bool); !running {
-			return nil
-		}
-		startedAt := toInt64(timer["startedAt"])
-		if startedAt > 0 {
-			elapsed := (nowMs - startedAt) / 1000
-			timer["accumulatedSeconds"] = toInt(timer["accumulatedSeconds"]) + int(elapsed)
-		}
-		timer["running"] = false
-		timer["startedAt"] = nil
-		timer["endsAt"] = nil
-	case "reset":
-		timer["running"] = false
-		timer["startedAt"] = nil
-		timer["endsAt"] = nil
-		timer["accumulatedSeconds"] = 0
-	default:
-		return errors.New("unknown action; use start, pause, or reset")
-	}
-	return nil
-}
-
-func toInt(v any) int {
-	switch n := v.(type) {
-	case float64:
-		return int(n)
-	case int:
-		return n
-	case int64:
-		return int(n)
-	case json.Number:
-		i, _ := n.Int64()
-		return int(i)
-	default:
-		return 0
-	}
-}
-
-func toInt64(v any) int64 {
-	switch n := v.(type) {
-	case float64:
-		return int64(n)
-	case int:
-		return int64(n)
-	case int64:
-		return n
-	case json.Number:
-		i, _ := n.Int64()
-		return i
-	default:
-		return 0
-	}
-}
-
 func (h *RoomHandler) GetLeetCodeState(w http.ResponseWriter, r *http.Request) {
 	h.getDoc(w, r, store.DocLeetCode)
 }
@@ -267,9 +196,40 @@ func (h *RoomHandler) PutLeetCodeState(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoomHandler) GetCalisthenicsState(w http.ResponseWriter, r *http.Request) {
-	h.getDoc(w, r, store.DocCalisthenics)
+	roomID := chi.URLParam(r, "roomId")
+	if !h.ensureRoom(r.Context(), w, roomID) {
+		return
+	}
+	state, err := h.Store.GetCalisthenicsState(r.Context(), roomID)
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	SetETag(w, state.Revision)
+	WriteJSON(w, http.StatusOK, state)
 }
 
 func (h *RoomHandler) PutCalisthenicsState(w http.ResponseWriter, r *http.Request) {
-	h.putDoc(w, r, store.DocCalisthenics)
+	roomID := chi.URLParam(r, "roomId")
+	if !h.ensureRoom(r.Context(), w, roomID) {
+		return
+	}
+	body, err := ReadRawBody(r)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+	expected := store.ParseExpectedRevision(ParseIfMatch(r), body)
+	data := store.StripRevisionField(body)
+	state, err := h.Store.PutCalisthenicsState(r.Context(), roomID, data, expected)
+	if errors.Is(err, store.ErrRevisionConflict) {
+		WriteError(w, http.StatusConflict, "revision conflict")
+		return
+	}
+	if err != nil {
+		writeStoreErr(w, err)
+		return
+	}
+	SetETag(w, state.Revision)
+	WriteJSON(w, http.StatusOK, state)
 }
