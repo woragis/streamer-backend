@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/woragis/streamer-backend/internal/defaults"
-	"github.com/woragis/streamer-backend/internal/ws"
+	"github.com/woragis/streamer-backend/internal/bus"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -31,7 +31,7 @@ type Document struct {
 
 type Store struct {
 	db  *sql.DB
-	hub *ws.Hub
+	bus bus.Bus
 }
 
 func New(db *sql.DB) *Store {

@@ -5,23 +5,26 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/woragis/streamer-backend/internal/bus"
 	"github.com/woragis/streamer-backend/internal/config"
 	"github.com/woragis/streamer-backend/internal/db"
 	"github.com/woragis/streamer-backend/internal/handlers"
 	appmw "github.com/woragis/streamer-backend/internal/middleware"
+	appredis "github.com/woragis/streamer-backend/internal/redis"
 	"github.com/woragis/streamer-backend/internal/store"
 	"github.com/woragis/streamer-backend/internal/ws"
 )
 
 func main() {
 	cfg := config.Load()
+	ctx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stopSignals()
 
 	database, err := db.Open(cfg.DatabaseURL)
 	if err != nil {
@@ -29,19 +32,40 @@ func main() {
 	}
 	defer database.Close()
 
+	redisClient, err := appredis.Connect(cfg.RedisURL)
+	if err != nil {
+		log.Fatalf("redis config: %v", err)
+	}
+	defer func() { _ = redisClient.Close() }()
+	if cfg.RedisURL != "" {
+		log.Printf("redis: %s (instance %s)", redisClient.Status(), cfg.InstanceID)
+	}
+
 	st := store.New(database)
-	if err := st.Seed(context.Background()); err != nil {
+	if err := st.Seed(ctx); err != nil {
 		log.Fatalf("seed: %v", err)
 	}
 
 	hub := ws.NewHub(cfg.CORSOrigins)
-	st.SetHub(hub)
+	localBus := bus.NewLocal(hub)
+	var eventBus bus.Bus = localBus
+	var composite *bus.CompositeBus
+
+	if redisClient.Enabled() && redisClient.Status() == "ok" {
+		redisBus := bus.NewRedis(redisClient.Raw(), cfg.InstanceID, localBus)
+		composite = bus.NewComposite(localBus, redisBus)
+		composite.Start(ctx)
+		eventBus = composite
+	}
+
+	st.SetBus(eventBus)
 
 	roomHandler := &handlers.RoomHandler{Store: st}
 	calHandler := &handlers.CalisthenicsHandler{Store: st}
 	lcHandler := &handlers.LeetCodeHandler{Store: st}
 	platformHandler := &handlers.PlatformHandler{Store: st}
 	wsHandler := &handlers.WSHandler{Hub: hub, Token: cfg.StateAPIToken}
+	healthHandler := &handlers.HealthHandler{Redis: redisClient, InstanceID: cfg.InstanceID}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -51,12 +75,7 @@ func main() {
 	r.Use(appmw.CORS(cfg.CORSOrigins))
 	r.Use(appmw.BearerAuth(cfg.StateAPIToken))
 
-	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
-	})
-
+	r.Get("/health", healthHandler.Check)
 	r.Get("/api/v1/rooms/{roomId}/subscribe", wsHandler.Subscribe)
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -176,13 +195,14 @@ func main() {
 		}
 	}()
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
+	<-ctx.Done()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	if composite != nil {
+		_ = composite.Close()
+	}
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("shutdown: %v", err)
 	}
 }

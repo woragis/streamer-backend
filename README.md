@@ -150,12 +150,14 @@ curl "http://localhost:8080/api/v1/rooms/default/dashboard?month=2026-06"
 - [x] Fase C — LeetCode model (problems, attempts, stats, live sessions)
 - [x] Fase D — Skill tracking (movements, proficiency, acquisitions)
 - [x] Fase E — Chat, WebSocket & dashboard
+- [x] Fase F — Redis pub/sub (multi-instance WebSocket)
 
 ## Stack
 
 - Go 1.22+
 - chi router
 - gorilla/websocket
+- redis/go-redis (pub/sub)
 - modernc.org/sqlite (pure Go)
 
 ## Env
@@ -166,3 +168,19 @@ curl "http://localhost:8080/api/v1/rooms/default/dashboard?month=2026-06"
 | `DATABASE_URL` | `./data/state.db` |
 | `STATE_API_TOKEN` | `dev-token` |
 | `CORS_ORIGINS` | `http://localhost:5173,...` |
+| `REDIS_URL` | _(vazio = desligado)_ |
+| `INSTANCE_ID` | hostname ou `state-api` |
+
+## Redis (Fase F)
+
+Pub/Sub distribui eventos WebSocket entre múltiplas instâncias da API.
+
+```bash
+make docker-up          # Redis 7 em localhost:6379
+cp .env.example .env    # REDIS_URL=redis://localhost:6379/0
+make run
+curl http://localhost:8080/health
+# {"status":"ok","redis":"ok","instanceId":"..."}
+```
+
+Sem `REDIS_URL`, a API funciona como antes (hub in-memory local). Com Redis down, status `degraded` e pub/sub desligado.

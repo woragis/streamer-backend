@@ -5,16 +5,16 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/woragis/streamer-backend/internal/ws"
+	"github.com/woragis/streamer-backend/internal/bus"
 )
 
-func (s *Store) SetHub(hub *ws.Hub) {
-	s.hub = hub
+func (s *Store) SetBus(b bus.Bus) {
+	s.bus = b
 }
 
 func (s *Store) publish(roomID, domain, eventType string, payload any) {
-	if s.hub != nil {
-		s.hub.Broadcast(roomID, domain, eventType, payload)
+	if s.bus != nil {
+		_ = s.bus.Publish(context.Background(), roomID, domain, eventType, payload)
 	}
 }
 
