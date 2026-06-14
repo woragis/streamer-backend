@@ -79,6 +79,7 @@ func main() {
 	platformHandler := &handlers.PlatformHandler{Store: st, IngestMode: cfg.IngestMode}
 	wsHandler := &handlers.WSHandler{Hub: hub, Token: cfg.StateAPIToken}
 	healthHandler := &handlers.HealthHandler{
+		DB:         database,
 		Redis:      redisClient,
 		Queue:      ingestQueue,
 		InstanceID: cfg.InstanceID,

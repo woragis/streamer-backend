@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/woragis/streamer-backend/internal/db"
 	appredis "github.com/woragis/streamer-backend/internal/redis"
 	"github.com/woragis/streamer-backend/internal/queue"
 )
 
 type HealthHandler struct {
+	DB         *db.DB
 	Redis      *appredis.Client
 	Queue      *queue.IngestQueue
 	InstanceID string
@@ -18,6 +20,17 @@ type HealthHandler struct {
 
 func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
 	status := "ok"
+	dbStatus := "down"
+	if h.DB != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := h.DB.PingContext(ctx); err != nil {
+			status = "degraded"
+		} else {
+			dbStatus = "ok"
+		}
+	}
+
 	redisStatus := "disabled"
 	if h.Redis != nil {
 		redisStatus = h.Redis.Status()
@@ -35,6 +48,8 @@ func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
 
 	out := map[string]any{
 		"status":     status,
+		"database":   dbStatus,
+		"driver":     "postgres",
 		"redis":      redisStatus,
 		"instanceId": h.InstanceID,
 		"ingestMode": h.IngestMode,

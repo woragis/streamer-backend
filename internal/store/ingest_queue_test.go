@@ -6,7 +6,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	goredis "github.com/redis/go-redis/v9"
-	"github.com/woragis/streamer-backend/internal/db"
+	"github.com/woragis/streamer-backend/internal/db/testutil"
 	"github.com/woragis/streamer-backend/internal/dedup"
 	"github.com/woragis/streamer-backend/internal/defaults"
 	"github.com/woragis/streamer-backend/internal/platform"
@@ -20,11 +20,7 @@ func TestIngestMessageDedup(t *testing.T) {
 	defer mr.Close()
 
 	ctx := context.Background()
-	database, err := db.Open(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer database.Close()
+	database := testutil.Open(t)
 
 	st := New(database)
 	if err := st.Seed(ctx); err != nil {

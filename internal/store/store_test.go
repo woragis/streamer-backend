@@ -3,23 +3,15 @@ package store_test
 import (
 	"context"
 	"encoding/json"
-	"path/filepath"
 	"testing"
 
-	"github.com/woragis/streamer-backend/internal/db"
+	"github.com/woragis/streamer-backend/internal/db/testutil"
 	"github.com/woragis/streamer-backend/internal/defaults"
 	"github.com/woragis/streamer-backend/internal/store"
 )
 
 func TestPutDocumentRevisionConflict(t *testing.T) {
-	t.Parallel()
-
-	databaseURL := filepath.Join(t.TempDir(), "test.db")
-	sqlDB, err := db.Open(databaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = sqlDB.Close() })
+	sqlDB := testutil.Open(t)
 
 	st := store.New(sqlDB)
 	ctx := context.Background()

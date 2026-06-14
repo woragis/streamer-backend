@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/woragis/streamer-backend/internal/defaults"
 	"github.com/woragis/streamer-backend/internal/bus"
+	"github.com/woragis/streamer-backend/internal/db"
 	"github.com/woragis/streamer-backend/internal/dedup"
+	"github.com/woragis/streamer-backend/internal/defaults"
 	"github.com/woragis/streamer-backend/internal/queue"
 )
 
@@ -33,14 +34,14 @@ type Document struct {
 }
 
 type Store struct {
-	db    *sql.DB
+	db    *db.DB
 	bus   bus.Bus
 	queue *queue.IngestQueue
 	dedup *dedup.Store
 }
 
-func New(db *sql.DB) *Store {
-	return &Store{db: db}
+func New(database *db.DB) *Store {
+	return &Store{db: database}
 }
 
 func (s *Store) SetQueue(q *queue.IngestQueue) {
@@ -103,7 +104,7 @@ func (s *Store) Seed(ctx context.Context) error {
 	return s.EnsurePlatform(ctx, defaults.DefaultRoomID)
 }
 
-func insertDocIfMissing(ctx context.Context, tx *sql.Tx, roomID, key string, data json.RawMessage, now string) error {
+func insertDocIfMissing(ctx context.Context, tx *db.Tx, roomID, key string, data json.RawMessage, now string) error {
 	_, err := tx.ExecContext(ctx, `
 		INSERT INTO room_documents (room_id, doc_key, data, revision, updated_at)
 		VALUES (?, ?, ?, 1, ?)

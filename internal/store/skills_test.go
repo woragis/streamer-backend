@@ -2,25 +2,17 @@ package store_test
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"github.com/woragis/streamer-backend/internal/calisthenics"
-	"github.com/woragis/streamer-backend/internal/db"
+	"github.com/woragis/streamer-backend/internal/db/testutil"
 	"github.com/woragis/streamer-backend/internal/defaults"
 	"github.com/woragis/streamer-backend/internal/leetcode"
 	"github.com/woragis/streamer-backend/internal/store"
 )
 
 func TestSkillCatalogAndAcquisition(t *testing.T) {
-	t.Parallel()
-
-	databaseURL := filepath.Join(t.TempDir(), "skills.db")
-	sqlDB, err := db.Open(databaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = sqlDB.Close() })
+	sqlDB := testutil.Open(t)
 
 	st := store.New(sqlDB)
 	ctx := context.Background()
@@ -96,14 +88,7 @@ func TestSkillCatalogAndAcquisition(t *testing.T) {
 }
 
 func TestListAcquisitionsByMonth(t *testing.T) {
-	t.Parallel()
-
-	databaseURL := filepath.Join(t.TempDir(), "skills2.db")
-	sqlDB, err := db.Open(databaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = sqlDB.Close() })
+	sqlDB := testutil.Open(t)
 
 	st := store.New(sqlDB)
 	ctx := context.Background()
@@ -111,7 +96,7 @@ func TestListAcquisitionsByMonth(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = st.CreateAcquisition(ctx, defaults.DefaultRoomID, calisthenics.CreateAcquisitionInput{
+	_, err := st.CreateAcquisition(ctx, defaults.DefaultRoomID, calisthenics.CreateAcquisitionInput{
 		MovementID: "handstand", ProficiencyAfter: calisthenics.ProficiencyLearning,
 	})
 	if err != nil {

@@ -5,18 +5,14 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/woragis/streamer-backend/internal/db"
+	"github.com/woragis/streamer-backend/internal/db/testutil"
 	"github.com/woragis/streamer-backend/internal/defaults"
 	"github.com/woragis/streamer-backend/internal/platform"
 )
 
 func TestPlatformIngestAndRules(t *testing.T) {
 	ctx := context.Background()
-	database, err := db.Open(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer database.Close()
+	database := testutil.Open(t)
 
 	st := New(database)
 	if err := st.Seed(ctx); err != nil {
@@ -78,11 +74,7 @@ func TestPlatformIngestAndRules(t *testing.T) {
 
 func TestPlatformStreamEvent(t *testing.T) {
 	ctx := context.Background()
-	database, err := db.Open(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer database.Close()
+	database := testutil.Open(t)
 
 	st := New(database)
 	if err := st.Seed(ctx); err != nil {
@@ -90,7 +82,7 @@ func TestPlatformStreamEvent(t *testing.T) {
 	}
 	roomID := defaults.DefaultRoomID
 
-	_, err = st.IngestStreamEvent(ctx, roomID, platform.IngestEventInput{
+	_, err := st.IngestStreamEvent(ctx, roomID, platform.IngestEventInput{
 		Type:     "follower",
 		Platform: "kick",
 		Username: "newfan",

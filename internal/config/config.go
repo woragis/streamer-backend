@@ -24,7 +24,7 @@ func Load() Config {
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "./data/state.db"
+		dbURL = "postgres://streamer:streamer@localhost:5432/streamer?sslmode=disable"
 	}
 
 	token := os.Getenv("STATE_API_TOKEN")

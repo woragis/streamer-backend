@@ -770,20 +770,20 @@ func (s *Store) GetCalTimers(ctx context.Context, roomID string) (json.RawMessag
 
 /* ─── helpers ─── */
 
-func insertExerciseTx(ctx context.Context, tx *sql.Tx, ex calisthenics.Exercise) error {
-	_, err := tx.ExecContext(ctx, `
+func insertExerciseTx(ctx context.Context, q sqlExecutor, ex calisthenics.Exercise) error {
+	_, err := q.ExecContext(ctx, `
 		INSERT INTO cal_workout_exercises (id, workout_id, name, movement_id, planned_sets, rep_target, status, sort_order)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`, ex.ID, ex.WorkoutID, ex.Name, ex.MovementID, ex.PlannedSets, ex.RepTarget, ex.Status, ex.SortOrder)
 	return err
 }
 
-func insertSetTx(ctx context.Context, tx *sql.Tx, set calisthenics.Set) error {
+func insertSetTx(ctx context.Context, q sqlExecutor, set calisthenics.Set) error {
 	skipped := 0
 	if set.Skipped {
 		skipped = 1
 	}
-	_, err := tx.ExecContext(ctx, `
+	_, err := q.ExecContext(ctx, `
 		INSERT INTO cal_sets (id, exercise_id, set_number, reps_target, reps_completed, skipped, completed_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`, set.ID, set.ExerciseID, set.SetNumber, set.RepsTarget, set.RepsCompleted, skipped, set.CompletedAt)
