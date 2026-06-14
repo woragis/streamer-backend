@@ -14,6 +14,7 @@ import (
 	"github.com/woragis/streamer-backend/internal/queue"
 	"github.com/woragis/streamer-backend/internal/store"
 	"github.com/woragis/streamer-backend/internal/worker"
+	"github.com/woragis/streamer-backend/internal/platforms/youtube"
 )
 
 func main() {
@@ -57,6 +58,12 @@ func main() {
 
 	log.Printf("platform worker started (room=%s youtube=%v kick=%v)",
 		platformCfg.RoomID, platformCfg.YouTubeEnabled, platformCfg.KickEnabled)
+
+	if platformCfg.YouTubeEnabled {
+		client := youtube.NewClient(platformCfg.GoogleAPIKey, platformCfg.YouTubeChannelID)
+		poller := youtube.NewPoller(client, st, platformCfg.RoomID, platformCfg.YouTubeIdleSeconds)
+		go poller.Run(ctx)
+	}
 
 	<-ctx.Done()
 	log.Printf("platform worker shutting down")
