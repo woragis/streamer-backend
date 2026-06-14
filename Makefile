@@ -1,4 +1,4 @@
-.PHONY: run build test tidy
+.PHONY: run build test tidy docker-up docker-down
 
 run:
 	go run ./cmd/server
@@ -11,3 +11,9 @@ test:
 
 tidy:
 	go mod tidy
+
+docker-up:
+	docker compose up -d redis
+
+docker-down:
+	docker compose down

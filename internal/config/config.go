@@ -10,6 +10,8 @@ type Config struct {
 	DatabaseURL   string
 	StateAPIToken string
 	CORSOrigins   []string
+	RedisURL      string
+	InstanceID    string
 }
 
 func Load() Config {
@@ -34,11 +36,23 @@ func Load() Config {
 		origins = splitCSV(cors)
 	}
 
+	instanceID := os.Getenv("INSTANCE_ID")
+	if instanceID == "" {
+		host, _ := os.Hostname()
+		if host != "" {
+			instanceID = host
+		} else {
+			instanceID = "state-api"
+		}
+	}
+
 	return Config{
 		Port:          port,
 		DatabaseURL:   dbURL,
 		StateAPIToken: token,
 		CORSOrigins:   origins,
+		RedisURL:      strings.TrimSpace(os.Getenv("REDIS_URL")),
+		InstanceID:    instanceID,
 	}
 }
 
