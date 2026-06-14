@@ -75,13 +75,14 @@ type TodayGoal struct {
 }
 
 type State struct {
-	Revision      int64          `json:"revision"`
-	WorkoutID     string         `json:"workoutId"`
-	WorkoutType   string         `json:"workoutType"`
-	WorkoutStatus string         `json:"workoutStatus"`
-	Exercises     []ExerciseView `json:"exercises"`
-	TodayGoal     TodayGoal      `json:"todayGoal"`
+	Revision      int64           `json:"revision"`
+	WorkoutID     string          `json:"workoutId"`
+	WorkoutType   string          `json:"workoutType"`
+	WorkoutStatus string          `json:"workoutStatus"`
+	Exercises     []ExerciseView  `json:"exercises"`
+	TodayGoal     TodayGoal       `json:"todayGoal"`
 	Timers        json.RawMessage `json:"timers"`
+	SkillAlert    *SkillAlert     `json:"skillAlert,omitempty"`
 }
 
 type CreateWorkoutInput struct {

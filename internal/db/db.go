@@ -146,6 +146,64 @@ CREATE TABLE IF NOT EXISTS lc_problem_topics (
 	topic_id TEXT NOT NULL,
 	PRIMARY KEY (room_id, problem_id, topic_id)
 );
+
+CREATE TABLE IF NOT EXISTS cal_movement_categories (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	name TEXT NOT NULL,
+	FOREIGN KEY (room_id) REFERENCES rooms(id)
+);
+
+CREATE TABLE IF NOT EXISTS cal_movements (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	slug TEXT NOT NULL,
+	name TEXT NOT NULL,
+	category_id TEXT NOT NULL,
+	description TEXT NOT NULL DEFAULT '',
+	prerequisites JSON NOT NULL DEFAULT '[]',
+	FOREIGN KEY (room_id) REFERENCES rooms(id),
+	UNIQUE(room_id, slug)
+);
+
+CREATE TABLE IF NOT EXISTS cal_movement_proficiencies (
+	room_id TEXT NOT NULL,
+	movement_id TEXT NOT NULL,
+	level TEXT NOT NULL DEFAULT 'unknown',
+	notes TEXT NOT NULL DEFAULT '',
+	best_hold_seconds INTEGER,
+	best_reps INTEGER,
+	progression_variant TEXT,
+	updated_at TEXT NOT NULL,
+	PRIMARY KEY (room_id, movement_id),
+	FOREIGN KEY (movement_id) REFERENCES cal_movements(id)
+);
+
+CREATE TABLE IF NOT EXISTS cal_skill_acquisitions (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	movement_id TEXT NOT NULL,
+	live_session_id TEXT,
+	acquired_at TEXT NOT NULL,
+	proficiency_before TEXT NOT NULL,
+	proficiency_after TEXT NOT NULL,
+	notes TEXT NOT NULL DEFAULT '',
+	evidence_url TEXT,
+	acknowledged INTEGER NOT NULL DEFAULT 0,
+	FOREIGN KEY (room_id) REFERENCES rooms(id),
+	FOREIGN KEY (movement_id) REFERENCES cal_movements(id)
+);
+
+CREATE TABLE IF NOT EXISTS cal_skill_practice_logs (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	movement_id TEXT NOT NULL,
+	live_session_id TEXT,
+	practiced_at TEXT NOT NULL,
+	duration_seconds INTEGER NOT NULL DEFAULT 0,
+	notes TEXT NOT NULL DEFAULT '',
+	FOREIGN KEY (room_id) REFERENCES rooms(id)
+);
 `
 
 func Open(databaseURL string) (*sql.DB, error) {
