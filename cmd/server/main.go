@@ -78,6 +78,11 @@ func main() {
 	lcHandler := &handlers.LeetCodeHandler{Store: st}
 	platformHandler := &handlers.PlatformHandler{Store: st, IngestMode: cfg.IngestMode}
 	wsHandler := &handlers.WSHandler{Hub: hub, Token: cfg.StateAPIToken}
+	platformCfg := config.LoadPlatform()
+	kickWebhookHandler, err := handlers.NewKickWebhookHandler(st, platformCfg)
+	if err != nil {
+		log.Fatalf("kick webhook: %v", err)
+	}
 	healthHandler := &handlers.HealthHandler{
 		DB:         database,
 		Redis:      redisClient,
@@ -96,6 +101,7 @@ func main() {
 
 	r.Get("/health", healthHandler.Check)
 	r.Get("/api/v1/rooms/{roomId}/subscribe", wsHandler.Subscribe)
+	r.Post("/api/v1/webhooks/kick", kickWebhookHandler.Receive)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/rooms/{roomId}", func(r chi.Router) {
