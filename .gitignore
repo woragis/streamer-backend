@@ -1,0 +1,16 @@
+# Binaries
+/bin/
+/server
+*.exe
+
+# Data
+/data/
+*.db
+*.db-journal
+
+# Env
+.env
+
+# IDE
+.idea/
+.vscode/
