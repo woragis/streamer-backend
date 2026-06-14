@@ -73,6 +73,79 @@ CREATE TABLE IF NOT EXISTS cal_sets (
 	FOREIGN KEY (exercise_id) REFERENCES cal_workout_exercises(id) ON DELETE CASCADE,
 	UNIQUE(exercise_id, set_number)
 );
+
+CREATE TABLE IF NOT EXISTS live_sessions (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	domain TEXT NOT NULL DEFAULT 'leetcode',
+	title TEXT,
+	platforms JSON NOT NULL DEFAULT '[]',
+	started_at TEXT NOT NULL,
+	ended_at TEXT,
+	FOREIGN KEY (room_id) REFERENCES rooms(id)
+);
+
+CREATE TABLE IF NOT EXISTS lc_runtime (
+	room_id TEXT PRIMARY KEY,
+	active_live_session_id TEXT,
+	code JSON NOT NULL DEFAULT '{}',
+	whiteboard JSON NOT NULL DEFAULT '{}',
+	goals JSON NOT NULL DEFAULT '{}',
+	copy JSON NOT NULL DEFAULT '{}',
+	loading_progress INTEGER NOT NULL DEFAULT 0,
+	timers JSON NOT NULL DEFAULT '{}',
+	revision INTEGER NOT NULL DEFAULT 1,
+	updated_at TEXT NOT NULL,
+	FOREIGN KEY (room_id) REFERENCES rooms(id)
+);
+
+CREATE TABLE IF NOT EXISTS lc_plan_items (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	label TEXT NOT NULL,
+	done INTEGER NOT NULL DEFAULT 0,
+	sort_order INTEGER NOT NULL DEFAULT 0,
+	FOREIGN KEY (room_id) REFERENCES rooms(id)
+);
+
+CREATE TABLE IF NOT EXISTS lc_problems (
+	room_id TEXT NOT NULL,
+	problem_id INTEGER NOT NULL,
+	title TEXT NOT NULL,
+	difficulty TEXT NOT NULL,
+	description TEXT NOT NULL DEFAULT '',
+	status TEXT NOT NULL DEFAULT 'queued',
+	solved_at TEXT,
+	sort_order INTEGER NOT NULL DEFAULT 0,
+	PRIMARY KEY (room_id, problem_id),
+	FOREIGN KEY (room_id) REFERENCES rooms(id)
+);
+
+CREATE TABLE IF NOT EXISTS lc_problem_attempts (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	problem_id INTEGER NOT NULL,
+	live_session_id TEXT,
+	started_at TEXT NOT NULL,
+	solved_at TEXT,
+	notes TEXT,
+	FOREIGN KEY (room_id) REFERENCES rooms(id),
+	FOREIGN KEY (live_session_id) REFERENCES live_sessions(id)
+);
+
+CREATE TABLE IF NOT EXISTS lc_topic_tags (
+	id TEXT PRIMARY KEY,
+	room_id TEXT NOT NULL,
+	name TEXT NOT NULL,
+	FOREIGN KEY (room_id) REFERENCES rooms(id)
+);
+
+CREATE TABLE IF NOT EXISTS lc_problem_topics (
+	room_id TEXT NOT NULL,
+	problem_id INTEGER NOT NULL,
+	topic_id TEXT NOT NULL,
+	PRIMARY KEY (room_id, problem_id, topic_id)
+);
 `
 
 func Open(databaseURL string) (*sql.DB, error) {
