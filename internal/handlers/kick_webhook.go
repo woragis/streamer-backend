@@ -1,30 +1,28 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
 	"net/http"
 
-	"github.com/woragis/streamer-backend/internal/config"
 	"github.com/woragis/streamer-backend/internal/platforms/kick"
 	"github.com/woragis/streamer-backend/internal/store"
 )
 
 type KickWebhookHandler struct {
-	Store       *store.Store
-	PlatformCfg config.PlatformConfig
-	verifyFn    func(messageID, timestamp string, body []byte, signature string) error
+	Store    *store.Store
+	verifyFn func(messageID, timestamp string, body []byte, signature string) error
 }
 
-func NewKickWebhookHandler(st *store.Store, platformCfg config.PlatformConfig) (*KickWebhookHandler, error) {
+func NewKickWebhookHandler(st *store.Store) (*KickWebhookHandler, error) {
 	pub, err := kick.DefaultPublicKeyParsed()
 	if err != nil {
 		return nil, err
 	}
 	return &KickWebhookHandler{
-		Store:       st,
-		PlatformCfg: platformCfg,
+		Store: st,
 		verifyFn: func(messageID, timestamp string, body []byte, signature string) error {
 			return kick.VerifySignature(pub, messageID, timestamp, body, signature)
 		},
@@ -32,11 +30,6 @@ func NewKickWebhookHandler(st *store.Store, platformCfg config.PlatformConfig) (
 }
 
 func (h *KickWebhookHandler) Receive(w http.ResponseWriter, r *http.Request) {
-	if !h.PlatformCfg.KickEnabled {
-		WriteError(w, http.StatusServiceUnavailable, "kick webhooks disabled")
-		return
-	}
-
 	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid body")
@@ -48,7 +41,19 @@ func (h *KickWebhookHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	timestamp := r.Header.Get(kick.HeaderMessageTS)
 	signature := r.Header.Get(kick.HeaderSignature)
 
-	if !h.PlatformCfg.KickWebhookSkipVerify {
+	broadcasterSlug := peekBroadcasterSlug(body)
+	settings, ok, err := h.Store.ResolveKickSettings(r.Context(), broadcasterSlug)
+	if err != nil {
+		log.Printf("kick webhook: resolve settings: %v", err)
+		WriteError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	if !ok || !settings.KickReady() {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if !settings.KickWebhookSkipVerify {
 		if messageID == "" || timestamp == "" || signature == "" {
 			WriteError(w, http.StatusUnauthorized, "missing kick signature headers")
 			return
@@ -60,7 +65,7 @@ func (h *KickWebhookHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	mapped, ok, err := kick.MapWebhook(eventType, body, h.PlatformCfg.KickChannelSlug, messageID)
+	mapped, ok, err := kick.MapWebhook(eventType, body, settings.KickChannelSlug, messageID)
 	if err != nil {
 		log.Printf("kick webhook: map %s: %v", eventType, err)
 		WriteError(w, http.StatusBadRequest, "invalid payload")
@@ -72,7 +77,7 @@ func (h *KickWebhookHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	roomID := h.PlatformCfg.RoomID
+	roomID := settings.RoomID
 
 	if mapped.Message != nil {
 		result, err := h.Store.IngestMessage(ctx, roomID, *mapped.Message)
@@ -100,4 +105,14 @@ func (h *KickWebhookHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func peekBroadcasterSlug(body []byte) string {
+	var payload struct {
+		Broadcaster struct {
+			ChannelSlug string `json:"channel_slug"`
+		} `json:"broadcaster"`
+	}
+	_ = json.Unmarshal(body, &payload)
+	return payload.Broadcaster.ChannelSlug
 }

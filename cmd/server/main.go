@@ -77,9 +77,9 @@ func main() {
 	calHandler := &handlers.CalisthenicsHandler{Store: st}
 	lcHandler := &handlers.LeetCodeHandler{Store: st}
 	platformHandler := &handlers.PlatformHandler{Store: st, IngestMode: cfg.IngestMode}
+	platformSettingsHandler := &handlers.PlatformSettingsHandler{Store: st}
 	wsHandler := &handlers.WSHandler{Hub: hub, Token: cfg.StateAPIToken}
-	platformCfg := config.LoadPlatform()
-	kickWebhookHandler, err := handlers.NewKickWebhookHandler(st, platformCfg)
+	kickWebhookHandler, err := handlers.NewKickWebhookHandler(st)
 	if err != nil {
 		log.Fatalf("kick webhook: %v", err)
 	}
@@ -201,6 +201,9 @@ func main() {
 			r.Delete("/rules/{ruleId}", platformHandler.DeleteRule)
 
 			r.Get("/dashboard", platformHandler.GetDashboard)
+
+			r.Get("/platform-settings", platformSettingsHandler.Get)
+			r.Put("/platform-settings", platformSettingsHandler.Put)
 		})
 	})
 

@@ -66,6 +66,7 @@ Servidor em `http://localhost:8080`.
 | GET/POST | `/api/v1/rooms/{roomId}/rules` | POST: Bearer |
 | PATCH/DELETE | `/api/v1/rooms/{roomId}/rules/{ruleId}` | Bearer |
 | GET | `/api/v1/rooms/{roomId}/dashboard?month=2026-06` | — |
+| GET/PUT | `/api/v1/rooms/{roomId}/platform-settings` | PUT: Bearer |
 
 Room padrão: `default` (seed automático na primeira execução).
 
@@ -230,32 +231,42 @@ curl -X POST http://localhost:8080/api/v1/rooms/default/chat/ingest \
 
 ## Platform ingest (Fase H)
 
-YouTube e Kick alimentam o mesmo pipeline de ingest. O **worker** roda separado da API.
+YouTube e Kick alimentam o mesmo pipeline de ingest. Credenciais ficam no **Postgres** (`core_platform_settings`) — dá para subir tudo e configurar depois via API.
 
 ```bash
-# Terminal 1 — API (consumer desligado)
+# Terminal 1 — API
 CONSUMER_ENABLED=false make run
 
-# Terminal 2 — worker (YouTube poll + Redis consumer)
-GOOGLE_API_KEY=... YOUTUBE_CHANNEL_ID=UC... make run-worker
+# Terminal 2 — worker (lê settings do banco a cada 15s)
+make run-worker
 ```
 
-### YouTube (worker)
+### Configurar plataformas (após deploy)
 
-| Variável | Descrição |
-|----------|-----------|
-| `GOOGLE_API_KEY` | API key do Google Cloud (YouTube Data API v3) |
-| `YOUTUBE_CHANNEL_ID` | ID do canal (`UC...`) |
-| `YOUTUBE_IDLE_SECONDS` | Intervalo quando não há live (default 30) |
+```bash
+curl -X PUT http://localhost:8080/api/v1/rooms/default/platform-settings \
+  -H "Authorization: Bearer dev-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "youtube": {
+      "enabled": true,
+      "apiKey": "AIza...",
+      "channelId": "UCxxxxxxxx",
+      "idleSeconds": 30
+    },
+    "kick": {
+      "enabled": true,
+      "channelSlug": "seucanal",
+      "webhookSkipVerify": false
+    }
+  }'
+```
 
-Mapeia mensagens, super chats, super stickers e novos membros.
+`GET /platform-settings` retorna `hasApiKey: true` mas **nunca** devolve a chave. No `PUT`, omita `apiKey` para manter a chave atual.
 
-### Kick (webhook na API)
+O worker detecta mudanças e inicia/para o poller YouTube automaticamente. Kick usa as settings na hora do webhook (match por `channelSlug`).
 
-| Variável | Descrição |
-|----------|-----------|
-| `KICK_CHANNEL_SLUG` | Slug do canal (filtra eventos) |
-| `KICK_WEBHOOK_SKIP_VERIFY` | `true` só em dev (pula RSA) |
+### Kick webhook
 
 Endpoint público (sem Bearer):
 
@@ -265,11 +276,12 @@ POST /api/v1/webhooks/kick
 
 Headers Kick: `Kick-Event-Type`, `Kick-Event-Message-Id`, `Kick-Event-Message-Timestamp`, `Kick-Event-Signature`.
 
-### Docker worker
+### Docker
 
 ```bash
-cp .env.example backend/.env   # preencher GOOGLE_API_KEY etc.
-docker compose up -d           # sobe postgres, redis e worker
+cp .env.example backend/.env
+docker compose up -d   # postgres, redis, worker
+make run               # API separada ou adicionar serviço depois
 ```
 
 Ver [docs/phases/phase-h-platform-ingest.md](../docs/phases/phase-h-platform-ingest.md).

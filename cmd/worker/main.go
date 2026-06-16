@@ -14,12 +14,10 @@ import (
 	"github.com/woragis/streamer-backend/internal/queue"
 	"github.com/woragis/streamer-backend/internal/store"
 	"github.com/woragis/streamer-backend/internal/worker"
-	"github.com/woragis/streamer-backend/internal/platforms/youtube"
 )
 
 func main() {
 	cfg := config.Load()
-	platformCfg := config.LoadPlatform()
 	ctx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stopSignals()
 
@@ -56,14 +54,10 @@ func main() {
 		log.Printf("ingest queue disabled — worker runs platform pollers only")
 	}
 
-	log.Printf("platform worker started (room=%s youtube=%v kick=%v)",
-		platformCfg.RoomID, platformCfg.YouTubeEnabled, platformCfg.KickEnabled)
+	log.Printf("platform worker started (room default=%s, settings from database)",
+		config.WorkerRoomID())
 
-	if platformCfg.YouTubeEnabled {
-		client := youtube.NewClient(platformCfg.GoogleAPIKey, platformCfg.YouTubeChannelID)
-		poller := youtube.NewPoller(client, st, platformCfg.RoomID, platformCfg.YouTubeIdleSeconds)
-		go poller.Run(ctx)
-	}
+	worker.StartPlatformSupervisor(ctx, st)
 
 	<-ctx.Done()
 	log.Printf("platform worker shutting down")
