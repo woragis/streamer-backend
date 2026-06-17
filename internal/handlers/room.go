@@ -67,7 +67,7 @@ func (h *RoomHandler) putDoc(w http.ResponseWriter, r *http.Request, key string)
 	expected := store.ParseExpectedRevision(ParseIfMatch(r), body)
 	data := store.StripRevisionField(body)
 
-	doc, err := h.Store.PutDocument(r.Context(), roomID, key, data, expected)
+	doc, err := h.Store.PutDocumentAndNotify(r.Context(), roomID, key, data, expected)
 	if errors.Is(err, store.ErrRevisionConflict) {
 		WriteError(w, http.StatusConflict, "revision conflict")
 		return
@@ -137,7 +137,7 @@ func (h *RoomHandler) PutStreamTimer(w http.ResponseWriter, r *http.Request) {
 	expected := store.ParseExpectedRevision(ParseIfMatch(r), body)
 	data := store.StripRevisionField(body)
 
-	doc, err := h.Store.PutDocument(r.Context(), roomID, store.DocStreamTimer, data, expected)
+	doc, err := h.Store.PutDocumentAndNotify(r.Context(), roomID, store.DocStreamTimer, data, expected)
 	if errors.Is(err, store.ErrRevisionConflict) {
 		WriteError(w, http.StatusConflict, "revision conflict")
 		return
@@ -175,7 +175,7 @@ func (h *RoomHandler) putStreamTimerAction(w http.ResponseWriter, r *http.Reques
 	}
 
 	expected := &doc.Revision
-	newDoc, err := h.Store.PutDocument(r.Context(), roomID, store.DocStreamTimer, updated, expected)
+	newDoc, err := h.Store.PutDocumentAndNotify(r.Context(), roomID, store.DocStreamTimer, updated, expected)
 	if errors.Is(err, store.ErrRevisionConflict) {
 		WriteError(w, http.StatusConflict, "revision conflict")
 		return

@@ -25,6 +25,38 @@ func (s *Store) publishState(roomID, domain string, revision int64) {
 	})
 }
 
+func (s *Store) PutDocumentAndNotify(ctx context.Context, roomID, key string, data json.RawMessage, expected *int64) (Document, error) {
+	doc, err := s.PutDocument(ctx, roomID, key, data, expected)
+	if err != nil {
+		return Document{}, err
+	}
+	s.notifyDocumentUpdated(roomID, key, doc)
+	return doc, nil
+}
+
+func (s *Store) notifyDocumentUpdated(roomID, key string, doc Document) {
+	switch key {
+	case DocSession:
+		var session map[string]any
+		_ = json.Unmarshal(doc.Data, &session)
+		scene, _ := session["scene"].(string)
+		s.publish(roomID, "all", "session.updated", map[string]any{
+			"scene":    scene,
+			"revision": doc.Revision,
+		})
+	case DocBranding:
+		s.publish(roomID, "all", "state.updated", map[string]any{
+			"revision": doc.Revision,
+			"domain":   "branding",
+		})
+	case DocStreamTimer:
+		s.publish(roomID, "all", "state.updated", map[string]any{
+			"revision": doc.Revision,
+			"domain":   "stream",
+		})
+	}
+}
+
 func (s *Store) SetScene(ctx context.Context, roomID, scene string) error {
 	doc, err := s.GetDocument(ctx, roomID, DocSession)
 	if err != nil {
