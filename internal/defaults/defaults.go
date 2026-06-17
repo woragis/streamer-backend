@@ -6,6 +6,8 @@ import (
 )
 
 const DefaultRoomID = "default"
+const RoomCodes = "codes"
+const RoomCalisthenics = "calisthenics"
 
 const defaultCode = `class TreeNode:
     def __init__(self, val=0, left=None, right=None):
@@ -45,17 +47,38 @@ func timer(id, mode, label string, durationSeconds, accumulatedSeconds int) map[
 }
 
 func Branding() json.RawMessage {
+	return BrandingForRoom(DefaultRoomID)
+}
+
+func BrandingForRoom(roomID string) json.RawMessage {
+	codesHandle := "@WoragisCodes"
+	calHandle := "@WoragisCalisthenics"
+	brandTitle := "LEETCODE LIVE"
+	youtube := "youtube.com/@WoragisCodes"
+	kick := "kick.com/WoragisCodes"
+
+	switch roomID {
+	case RoomCalisthenics:
+		brandTitle = "CALISTHENICS LIVE"
+		youtube = "youtube.com/@WoragisCalisthenics"
+		kick = "kick.com/WoragisCalisthenics"
+	case RoomCodes:
+		brandTitle = "LEETCODE LIVE"
+	}
+
 	return mustJSON(map[string]any{
-		"handle":            "@yourhandle",
-		"brandTitle":        "LEETCODE LIVE",
-		"motto":             "FOCUS • DISCIPLINE • CONSISTENCY",
-		"calisthenicsMotto": "DISCIPLINE TODAY FREEDOM TOMORROW",
-		"schedule":          "Mon – Fri · 10:00 AM EST",
+		"handle":              codesHandle,
+		"codesHandle":         codesHandle,
+		"calisthenicsHandle":  calHandle,
+		"brandTitle":          brandTitle,
+		"motto":               "FOCUS • DISCIPLINE • CONSISTENCY",
+		"calisthenicsMotto":   "DISCIPLINE TODAY FREEDOM TOMORROW",
+		"schedule":            "Mon – Fri · 10:00 AM EST",
 		"social": map[string]string{
 			"discord": "discord.gg/yourserver",
-			"twitter": "@yourtwitter",
-			"youtube": "youtube.com/@yourchannel",
-			"kick":    "kick.com/yourchannel",
+			"twitter": "@WoragisCodes",
+			"youtube": youtube,
+			"kick":    kick,
 		},
 	})
 }

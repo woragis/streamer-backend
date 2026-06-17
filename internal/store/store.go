@@ -57,6 +57,24 @@ func (s *Store) QueueEnabled() bool {
 }
 
 func (s *Store) Seed(ctx context.Context) error {
+	rooms := []struct {
+		id     string
+		domain string
+	}{
+		{defaults.DefaultRoomID, "leetcode"},
+		{defaults.RoomCodes, "leetcode"},
+		{defaults.RoomCalisthenics, "calisthenics"},
+	}
+
+	for _, room := range rooms {
+		if err := s.seedRoom(ctx, room.id, room.domain); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Store) seedRoom(ctx context.Context, roomID, activeDomain string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -67,15 +85,15 @@ func (s *Store) Seed(ctx context.Context) error {
 
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO rooms (id, active_domain, created_at, updated_at)
-		VALUES (?, 'leetcode', ?, ?)
+		VALUES (?, ?, ?, ?)
 		ON CONFLICT(id) DO NOTHING
-	`, defaults.DefaultRoomID, now, now)
+	`, roomID, activeDomain, now, now)
 	if err != nil {
-		return fmt.Errorf("seed room: %w", err)
+		return fmt.Errorf("seed room %s: %w", roomID, err)
 	}
 
 	seeds := map[string]json.RawMessage{
-		DocBranding:     defaults.Branding(),
+		DocBranding:     defaults.BrandingForRoom(roomID),
 		DocSession:      defaults.Session(),
 		DocStreamTimer:  defaults.StreamTimer(),
 		DocLeetCode:     defaults.LeetCodeState(),
@@ -83,7 +101,7 @@ func (s *Store) Seed(ctx context.Context) error {
 	}
 
 	for key, data := range seeds {
-		if err := insertDocIfMissing(ctx, tx, defaults.DefaultRoomID, key, data, now); err != nil {
+		if err := insertDocIfMissing(ctx, tx, roomID, key, data, now); err != nil {
 			return err
 		}
 	}
@@ -92,16 +110,16 @@ func (s *Store) Seed(ctx context.Context) error {
 		return err
 	}
 
-	if err := s.EnsureLeetCode(ctx, defaults.DefaultRoomID); err != nil {
+	if err := s.EnsureLeetCode(ctx, roomID); err != nil {
 		return err
 	}
-	if err := s.EnsureCalisthenics(ctx, defaults.DefaultRoomID); err != nil {
+	if err := s.EnsureCalisthenics(ctx, roomID); err != nil {
 		return err
 	}
-	if err := s.EnsureSkillCatalog(ctx, defaults.DefaultRoomID); err != nil {
+	if err := s.EnsureSkillCatalog(ctx, roomID); err != nil {
 		return err
 	}
-	return s.EnsurePlatform(ctx, defaults.DefaultRoomID)
+	return s.EnsurePlatform(ctx, roomID)
 }
 
 func insertDocIfMissing(ctx context.Context, tx *db.Tx, roomID, key string, data json.RawMessage, now string) error {
