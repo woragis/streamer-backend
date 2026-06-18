@@ -22,7 +22,7 @@ func Load() Config {
 		port = "8080"
 	}
 
-	dbURL := os.Getenv("DATABASE_URL")
+	dbURL := NormalizeDatabaseURL(os.Getenv("DATABASE_URL"))
 	if dbURL == "" {
 		dbURL = "postgres://streamer:streamer@localhost:5432/streamer?sslmode=disable"
 	}

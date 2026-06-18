@@ -29,17 +29,62 @@ func main() {
 	ctx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stopSignals()
 
+	log.Printf("state-api boot (port=%s cors=%v)", cfg.Port, cfg.CORSOrigins)
+
+	gate := newEarlyListener(cfg.CORSOrigins)
+	addr := fmt.Sprintf(":%s", cfg.Port)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      gate,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	go func() {
+		log.Printf("state-api listening on %s", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %v", err)
+		}
+	}()
+
+	app, composite, err := buildApp(ctx, cfg)
+	if err != nil {
+		log.Printf("init failed: %v", err)
+		gate.setError(err)
+		<-ctx.Done()
+		shutdownServer(srv, composite)
+		return
+	}
+	gate.setReady(app)
+	log.Printf("state-api ready")
+
+	<-ctx.Done()
+	shutdownServer(srv, composite)
+}
+
+func shutdownServer(srv *http.Server, composite *bus.CompositeBus) {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if composite != nil {
+		_ = composite.Close()
+	}
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("shutdown: %v", err)
+	}
+}
+
+func buildApp(ctx context.Context, cfg config.Config) (http.Handler, *bus.CompositeBus, error) {
 	database, err := db.Open(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("database: %v", err)
+		return nil, nil, fmt.Errorf("database: %w", err)
 	}
-	defer database.Close()
 
 	redisClient, err := appredis.Connect(cfg.RedisURL)
 	if err != nil {
-		log.Fatalf("redis: %v", err)
+		_ = database.Close()
+		return nil, nil, fmt.Errorf("redis: %w", err)
 	}
-	defer func() { _ = redisClient.Close() }()
 	if cfg.RedisURL != "" {
 		log.Printf("redis: %s (instance %s, ingest=%s)", redisClient.Status(), cfg.InstanceID, cfg.IngestMode)
 	}
@@ -48,8 +93,6 @@ func main() {
 	if err := st.Seed(ctx); err != nil {
 		log.Printf("seed warning: %v (continuing startup)", err)
 	}
-
-	log.Printf("cors origins: %v", cfg.CORSOrigins)
 
 	hub := ws.NewHub(cfg.CORSOrigins)
 	localBus := bus.NewLocal(hub)
@@ -83,7 +126,12 @@ func main() {
 	wsHandler := &handlers.WSHandler{Hub: hub, Token: cfg.StateAPIToken}
 	kickWebhookHandler, err := handlers.NewKickWebhookHandler(st)
 	if err != nil {
-		log.Fatalf("kick webhook: %v", err)
+		_ = database.Close()
+		_ = redisClient.Close()
+		if composite != nil {
+			_ = composite.Close()
+		}
+		return nil, nil, fmt.Errorf("kick webhook: %w", err)
 	}
 	healthHandler := &handlers.HealthHandler{
 		DB:         database,
@@ -209,30 +257,5 @@ func main() {
 		})
 	})
 
-	addr := fmt.Sprintf(":%s", cfg.Port)
-	srv := &http.Server{
-		Addr:         addr,
-		Handler:      r,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
-	}
-
-	go func() {
-		log.Printf("state-api listening on %s", addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %v", err)
-		}
-	}()
-
-	<-ctx.Done()
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if composite != nil {
-		_ = composite.Close()
-	}
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("shutdown: %v", err)
-	}
+	return r, composite, nil
 }
