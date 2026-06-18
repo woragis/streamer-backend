@@ -37,7 +37,7 @@ func main() {
 
 	redisClient, err := appredis.Connect(cfg.RedisURL)
 	if err != nil {
-		log.Fatalf("redis config: %v", err)
+		log.Fatalf("redis: %v", err)
 	}
 	defer func() { _ = redisClient.Close() }()
 	if cfg.RedisURL != "" {
@@ -46,8 +46,10 @@ func main() {
 
 	st := store.New(database)
 	if err := st.Seed(ctx); err != nil {
-		log.Fatalf("seed: %v", err)
+		log.Printf("seed warning: %v (continuing startup)", err)
 	}
+
+	log.Printf("cors origins: %v", cfg.CORSOrigins)
 
 	hub := ws.NewHub(cfg.CORSOrigins)
 	localBus := bus.NewLocal(hub)

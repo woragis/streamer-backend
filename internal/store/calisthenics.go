@@ -777,6 +777,7 @@ func insertExerciseTx(ctx context.Context, q sqlExecutor, ex calisthenics.Exerci
 	_, err := q.ExecContext(ctx, `
 		INSERT INTO cal_workout_exercises (id, workout_id, name, movement_id, planned_sets, rep_target, status, sort_order)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT (id) DO NOTHING
 	`, ex.ID, ex.WorkoutID, ex.Name, ex.MovementID, ex.PlannedSets, ex.RepTarget, ex.Status, ex.SortOrder)
 	return err
 }

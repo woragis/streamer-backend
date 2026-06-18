@@ -28,12 +28,16 @@ type lcRuntime struct {
 }
 
 func (s *Store) EnsureLeetCode(ctx context.Context, roomID string) error {
-	var n int
-	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM lc_problems WHERE room_id = ?`, roomID).Scan(&n)
+	var problems, planItems int
+	err := s.db.QueryRowContext(ctx, `
+		SELECT
+			(SELECT COUNT(*) FROM lc_problems WHERE room_id = ?),
+			(SELECT COUNT(*) FROM lc_plan_items WHERE room_id = ?)
+	`, roomID, roomID).Scan(&problems, &planItems)
 	if err != nil {
 		return err
 	}
-	if n > 0 {
+	if problems > 0 || planItems > 0 {
 		return s.ensureLCRuntime(ctx, roomID)
 	}
 
@@ -773,6 +777,7 @@ func insertPlanItemTx(ctx context.Context, q sqlExecutor, roomID string, item le
 	_, err := q.ExecContext(ctx, `
 		INSERT INTO lc_plan_items (id, room_id, label, done, sort_order)
 		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT (id) DO NOTHING
 	`, item.ID, roomID, item.Label, done, item.SortOrder)
 	return err
 }

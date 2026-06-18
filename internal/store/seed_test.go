@@ -38,3 +38,30 @@ func TestSeedAllRooms(t *testing.T) {
 		}
 	}
 }
+
+func TestSeedLegacyPlanItemsThenAllRooms(t *testing.T) {
+	sqlDB := testutil.Open(t)
+	ctx := context.Background()
+
+	_, err := sqlDB.ExecContext(ctx, `
+		INSERT INTO rooms (id, active_domain, created_at, updated_at)
+		VALUES ('default', 'leetcode', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')
+		ON CONFLICT (id) DO NOTHING
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = sqlDB.ExecContext(ctx, `
+		INSERT INTO lc_plan_items (id, room_id, label, done, sort_order)
+		VALUES ('plan-1', 'default', 'legacy', 0, 0)
+		ON CONFLICT (id) DO NOTHING
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	st := store.New(sqlDB)
+	if err := st.Seed(ctx); err != nil {
+		t.Fatalf("seed after legacy data: %v", err)
+	}
+}

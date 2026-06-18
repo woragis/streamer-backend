@@ -27,7 +27,7 @@ func Load() Config {
 		dbURL = "postgres://streamer:streamer@localhost:5432/streamer?sslmode=disable"
 	}
 
-	token := os.Getenv("STATE_API_TOKEN")
+	token := trimQuotes(strings.TrimSpace(os.Getenv("STATE_API_TOKEN")))
 	if token == "" {
 		token = "dev-token"
 	}

@@ -41,12 +41,14 @@ func (s *Store) EnsureSkillCatalog(ctx context.Context, roomID string) error {
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO cal_movements (id, room_id, slug, name, category_id, description, prerequisites)
 			VALUES (?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT (id) DO NOTHING
 		`, m.ID, roomID, m.Slug, m.Name, m.CategoryID, m.Description, string(prereq)); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO cal_movement_proficiencies (room_id, movement_id, level, updated_at)
 			VALUES (?, ?, 'unknown', ?)
+			ON CONFLICT (room_id, movement_id) DO NOTHING
 		`, roomID, m.ID, now); err != nil {
 			return err
 		}

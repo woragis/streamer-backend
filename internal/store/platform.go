@@ -26,6 +26,7 @@ func (s *Store) EnsurePlatform(ctx context.Context, roomID string) error {
 		_, err := s.db.ExecContext(ctx, `
 			INSERT INTO core_bot_rules (id, room_id, name, enabled, trigger_type, trigger_value, action_type, action_payload, created_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT (id) DO NOTHING
 		`, rule.ID, roomID, rule.Name, enabled, rule.TriggerType, rule.TriggerValue, rule.ActionType, string(rule.ActionPayload), rule.CreatedAt)
 		if err != nil {
 			return err

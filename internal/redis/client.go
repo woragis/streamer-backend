@@ -2,7 +2,8 @@ package redis
 
 import (
 	"context"
-	"fmt"
+	"log"
+	"strings"
 	"time"
 
 	goredis "github.com/redis/go-redis/v9"
@@ -17,13 +18,15 @@ type Client struct {
 }
 
 func Connect(url string) (*Client, error) {
+	url = strings.TrimSpace(url)
 	if url == "" {
 		return &Client{status: "disabled"}, nil
 	}
 
 	opts, err := goredis.ParseURL(url)
 	if err != nil {
-		return nil, fmt.Errorf("parse redis url: %w", err)
+		log.Printf("redis: invalid REDIS_URL (%v) — running without redis bus", err)
+		return &Client{status: "disabled"}, nil
 	}
 
 	rdb := goredis.NewClient(opts)
