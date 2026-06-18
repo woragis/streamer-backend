@@ -67,6 +67,12 @@ Servidor em `http://localhost:8080`.
 | PATCH/DELETE | `/api/v1/rooms/{roomId}/rules/{ruleId}` | Bearer |
 | GET | `/api/v1/rooms/{roomId}/dashboard?month=2026-06` | — |
 | GET/PUT | `/api/v1/rooms/{roomId}/platform-settings` | PUT: Bearer |
+| GET/PUT | `/api/v1/rooms/{roomId}/restream-settings` | PUT: Bearer |
+| POST | `/api/v1/rooms/{roomId}/restream-settings/regenerate-ingest-key` | Bearer |
+| POST | `/api/v1/restream/auth` | MediaMTX (HTTP auth) |
+| GET | `/internal/restream/relay/{roomId}` | `X-Restream-Internal-Token` |
+
+Deploy restream: [docs/restream-deploy.md](docs/restream-deploy.md)
 
 Room padrão: `default` (seed automático na primeira execução).
 

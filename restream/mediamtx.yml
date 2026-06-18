@@ -1,0 +1,23 @@
+# MediaMTX — RTMP ingest + fan-out via restream-hook (FFmpeg).
+
+logLevel: info
+readTimeout: 10s
+writeTimeout: 10s
+
+rtmpAddress: :1935
+
+authMethod: http
+authHTTPAddress: ${RESTREAM_AUTH_URL}
+
+paths:
+  "live/codes":
+    source: publisher
+    runOnReady: /usr/local/bin/restream-hook publish live/codes
+    runOnNotReady: /usr/local/bin/restream-hook unpublish live/codes
+    runOnReadyRestart: yes
+
+  "live/calisthenics":
+    source: publisher
+    runOnReady: /usr/local/bin/restream-hook publish live/calisthenics
+    runOnNotReady: /usr/local/bin/restream-hook unpublish live/calisthenics
+    runOnReadyRestart: yes

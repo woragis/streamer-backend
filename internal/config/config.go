@@ -14,7 +14,10 @@ type Config struct {
 	RedisURL        string
 	InstanceID      string
 	IngestMode      string
-	ConsumerEnabled bool
+	ConsumerEnabled       bool
+	RestreamPublicURL     string
+	RestreamRelaySource   string
+	RestreamInternalToken string
 }
 
 func Load() Config {
@@ -64,16 +67,32 @@ func Load() Config {
 		consumerEnabled = false
 	}
 
+	restreamPublic := trimQuotes(strings.TrimSpace(os.Getenv("RESTREAM_PUBLIC_URL")))
+	if restreamPublic == "" {
+		restreamPublic = "rtmp://127.0.0.1:1935"
+	}
+	restreamRelay := trimQuotes(strings.TrimSpace(os.Getenv("RESTREAM_RELAY_SOURCE")))
+	if restreamRelay == "" {
+		restreamRelay = "rtmp://127.0.0.1:1935"
+	}
+	restreamInternal := trimQuotes(strings.TrimSpace(os.Getenv("RESTREAM_INTERNAL_TOKEN")))
+	if restreamInternal == "" {
+		restreamInternal = token
+	}
+
 	return Config{
-		Host:            host,
-		Port:            port,
-		DatabaseURL:     dbURL,
-		StateAPIToken:   token,
-		CORSOrigins:     origins,
-		RedisURL:        strings.TrimSpace(os.Getenv("REDIS_URL")),
-		InstanceID:      instanceID,
-		IngestMode:      ingestMode,
-		ConsumerEnabled: consumerEnabled,
+		Host:                  host,
+		Port:                  port,
+		DatabaseURL:           dbURL,
+		StateAPIToken:         token,
+		CORSOrigins:           origins,
+		RedisURL:              strings.TrimSpace(os.Getenv("REDIS_URL")),
+		InstanceID:            instanceID,
+		IngestMode:            ingestMode,
+		ConsumerEnabled:       consumerEnabled,
+		RestreamPublicURL:     restreamPublic,
+		RestreamRelaySource:   restreamRelay,
+		RestreamInternalToken: restreamInternal,
 	}
 }
 

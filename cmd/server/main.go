@@ -133,6 +133,12 @@ func buildApp(ctx context.Context, cfg config.Config) (http.Handler, *bus.Compos
 		}
 		return nil, nil, fmt.Errorf("kick webhook: %w", err)
 	}
+	restreamHandler := &handlers.RestreamHandler{
+		Store:           st,
+		ObsServer:       cfg.RestreamPublicURL,
+		RelaySourceBase: cfg.RestreamRelaySource,
+		InternalToken:   cfg.RestreamInternalToken,
+	}
 	healthHandler := &handlers.HealthHandler{
 		DB:         database,
 		Redis:      redisClient,
@@ -152,6 +158,8 @@ func buildApp(ctx context.Context, cfg config.Config) (http.Handler, *bus.Compos
 	r.Get("/health", healthHandler.Check)
 	r.Get("/api/v1/rooms/{roomId}/subscribe", wsHandler.Subscribe)
 	r.Post("/api/v1/webhooks/kick", kickWebhookHandler.Receive)
+	r.Post("/api/v1/restream/auth", restreamHandler.Auth)
+	r.Get("/internal/restream/relay/{roomId}", restreamHandler.InternalRelay)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/rooms/{roomId}", func(r chi.Router) {
@@ -254,6 +262,10 @@ func buildApp(ctx context.Context, cfg config.Config) (http.Handler, *bus.Compos
 
 			r.Get("/platform-settings", platformSettingsHandler.Get)
 			r.Put("/platform-settings", platformSettingsHandler.Put)
+
+			r.Get("/restream-settings", restreamHandler.GetSettings)
+			r.Put("/restream-settings", restreamHandler.PutSettings)
+			r.Post("/restream-settings/regenerate-ingest-key", restreamHandler.RegenerateIngestKey)
 		})
 	})
 

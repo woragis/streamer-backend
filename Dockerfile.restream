@@ -1,0 +1,27 @@
+FROM golang:1.25-alpine AS hook-build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /restream-hook ./cmd/restream-hook
+
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates ffmpeg curl wget
+
+ARG MEDIAMTX_VERSION=1.11.3
+RUN wget -qO /tmp/mediamtx.tar.gz \
+      "https://github.com/bluenviron/mediamtx/releases/download/v${MEDIAMTX_VERSION}/mediamtx_v${MEDIAMTX_VERSION}_linux_amd64.tar.gz" \
+    && tar -xzf /tmp/mediamtx.tar.gz -C /usr/local/bin mediamtx \
+    && rm /tmp/mediamtx.tar.gz \
+    && chmod +x /usr/local/bin/mediamtx
+
+COPY --from=hook-build /restream-hook /usr/local/bin/restream-hook
+COPY restream/mediamtx.yml /etc/mediamtx/mediamtx.yml.template
+COPY restream/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENV RESTREAM_API_URL=http://state-api:8080
+ENV RESTREAM_AUTH_URL=http://state-api:8080/api/v1/restream/auth
+
+EXPOSE 1935
+ENTRYPOINT ["/entrypoint.sh"]
