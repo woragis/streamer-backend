@@ -71,13 +71,23 @@ func Load() Config {
 }
 
 func splitCSV(s string) []string {
+	s = trimQuotes(strings.TrimSpace(s))
 	parts := strings.Split(s, ",")
 	out := make([]string, 0, len(parts))
 	for _, p := range parts {
-		p = strings.TrimSpace(p)
+		p = trimQuotes(strings.TrimSpace(p))
 		if p != "" {
 			out = append(out, p)
 		}
 	}
 	return out
+}
+
+func trimQuotes(s string) string {
+	if len(s) >= 2 {
+		if (s[0] == '"' && s[len(s)-1] == '"') || (s[0] == '\'' && s[len(s)-1] == '\'') {
+			return strings.TrimSpace(s[1 : len(s)-1])
+		}
+	}
+	return s
 }
