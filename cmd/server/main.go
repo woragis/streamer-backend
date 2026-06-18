@@ -29,10 +29,10 @@ func main() {
 	ctx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stopSignals()
 
-	log.Printf("state-api boot (port=%s cors=%v)", cfg.Port, cfg.CORSOrigins)
+	log.Printf("state-api boot (host=%s port=%s cors=%v)", cfg.Host, cfg.Port, cfg.CORSOrigins)
 
 	gate := newEarlyListener(cfg.CORSOrigins)
-	addr := fmt.Sprintf(":%s", cfg.Port)
+	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      gate,

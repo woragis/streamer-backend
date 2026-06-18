@@ -6,6 +6,7 @@ import (
 )
 
 type Config struct {
+	Host            string
 	Port            string
 	DatabaseURL     string
 	StateAPIToken   string
@@ -17,7 +18,12 @@ type Config struct {
 }
 
 func Load() Config {
-	port := os.Getenv("PORT")
+	host := trimQuotes(strings.TrimSpace(os.Getenv("HOST")))
+	if host == "" {
+		host = "0.0.0.0"
+	}
+
+	port := trimQuotes(strings.TrimSpace(os.Getenv("PORT")))
 	if port == "" {
 		port = "8080"
 	}
@@ -59,6 +65,7 @@ func Load() Config {
 	}
 
 	return Config{
+		Host:            host,
 		Port:            port,
 		DatabaseURL:     dbURL,
 		StateAPIToken:   token,

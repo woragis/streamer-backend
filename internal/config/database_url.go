@@ -12,11 +12,16 @@ func NormalizeDatabaseURL(raw string) string {
 	if strings.Contains(lower, "sslmode=") {
 		return u
 	}
-	if strings.Contains(lower, "railway") || strings.Contains(lower, "rlwy.net") {
-		sep := "?"
-		if strings.Contains(u, "?") {
-			sep = "&"
-		}
+	sep := "?"
+	if strings.Contains(u, "?") {
+		sep = "&"
+	}
+	// Railway private network — TLS is not used on *.railway.internal
+	if strings.Contains(lower, ".railway.internal") {
+		return u + sep + "sslmode=disable"
+	}
+	// Public Railway proxy hostnames
+	if strings.Contains(lower, "railway.app") || strings.Contains(lower, "rlwy.net") {
 		return u + sep + "sslmode=require"
 	}
 	return u
