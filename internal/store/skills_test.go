@@ -36,7 +36,7 @@ func TestSkillCatalogAndAcquisition(t *testing.T) {
 	}
 
 	acq, err := st.CreateAcquisition(ctx, defaults.DefaultRoomID, calisthenics.CreateAcquisitionInput{
-		MovementID:       "muscle-up",
+		MovementID:       defaults.ScopedSeedID(defaults.DefaultRoomID, "muscle-up"),
 		LiveSessionID:    &sess.ID,
 		ProficiencyAfter: calisthenics.ProficiencyConsistent,
 		Notes:            "Primeiro rep limpo",
@@ -78,7 +78,7 @@ func TestSkillCatalogAndAcquisition(t *testing.T) {
 		t.Fatal("expected skillAlert cleared after ack")
 	}
 
-	prof, err := st.GetProficiency(ctx, defaults.DefaultRoomID, "muscle-up")
+	prof, err := st.GetProficiency(ctx, defaults.DefaultRoomID, defaults.ScopedSeedID(defaults.DefaultRoomID, "muscle-up"))
 	if err != nil {
 		t.Fatal(err)
 	}

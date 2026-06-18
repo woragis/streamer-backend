@@ -99,6 +99,9 @@ func (s *Store) importFlatCalisthenics(ctx context.Context, roomID string, flat 
 	}
 
 	for _, fex := range flat.Exercises {
+		if fex.ID != "" {
+			fex.ID = defaults.ScopedSeedID(roomID, fex.ID)
+		}
 		ex := calisthenics.ExerciseFromFlat(fex, workoutID)
 		if err := insertExerciseTx(ctx, tx, ex); err != nil {
 			return err

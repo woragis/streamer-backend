@@ -94,6 +94,8 @@ func (s *Store) importFlatLeetCode(ctx context.Context, roomID string, flat leet
 	for _, item := range flat.Plan {
 		if item.ID == "" {
 			item.ID = leetcode.NewID("plan")
+		} else {
+			item.ID = defaults.ScopedSeedID(roomID, item.ID)
 		}
 		if err := insertPlanItemTx(ctx, tx, roomID, item); err != nil {
 			return err
